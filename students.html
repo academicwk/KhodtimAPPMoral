@@ -69,7 +69,14 @@
             </div>
         </div>
 
-        <div id="studentListContainer" class="px-4 mt-4 space-y-4"></div>
+        <div id="studentListContainer" class="px-4 mt-4 space-y-4 pb-4"></div>
+
+        <div id="saveAllContainer" class="px-4 mt-2 mb-8 hidden">
+            <button id="btnSaveAll" onclick="saveAllData()" class="w-full bg-blue-600 hover:bg-blue-700 text-white text-base font-bold py-4 rounded-xl shadow-lg transition flex items-center justify-center gap-2">
+                <i class="fa-solid fa-save text-xl"></i> บันทึกผลการประเมินทั้งหมด
+            </button>
+        </div>
+
     </div>
 
     <div id="historyModal" class="fixed inset-0 modal-overlay hidden z-50 flex flex-col justify-end max-w-md mx-auto">
@@ -159,7 +166,15 @@
             updateProgress(students);
             
             if(!students || students.length === 0) {
-                container.innerHTML = `<div class="bg-red-50 border border-red-200 p-4 rounded-xl text-center"><p class="text-red-500 font-bold text-sm">ไม่พบรายชื่อนักเรียนห้อง ${globalTeacherRoom}</p></div>`; return;
+                container.innerHTML = `<div class="bg-red-50 border border-red-200 p-4 rounded-xl text-center"><p class="text-red-500 font-bold text-sm">ไม่พบรายชื่อนักเรียนห้อง ${globalTeacherRoom}</p></div>`; 
+                document.getElementById('saveAllContainer').classList.add('hidden');
+                return;
+            }
+
+            if(isReadOnly) {
+                document.getElementById('saveAllContainer').classList.add('hidden');
+            } else {
+                document.getElementById('saveAllContainer').classList.remove('hidden');
             }
 
             students.forEach(student => {
@@ -170,36 +185,33 @@
                 let savedVal = student.overall_result;
                 if (!savedVal || savedVal === "รอข้อมูล") savedVal = "";
 
-                let resColor = "text-gray-500";
-                if(savedVal === "ดี") resColor = "text-green-600";
-                else if(savedVal === "ปกติ") resColor = "text-blue-500";
-                else if(savedVal === "ชั่ว") resColor = "text-red-500";
-
-                const card = document.createElement("div");
-                card.className = `bg-white p-4 rounded-xl shadow-sm ${borderClass} relative`;
-                card.id = `card_${student.sid}`;
-                
                 const readonlyAttr = isReadOnly ? "disabled" : "";
-                const saveBtnClass = isReadOnly ? "hidden" : "block";
                 const profileImg = student.photo ? student.photo : 'https://cdn-icons-png.flaticon.com/512/149/149071.png';
                 const imgBorder = isRec ? "border-green-400" : "border-gray-200";
 
-                const activeClass = "border rounded py-2 text-center font-bold text-white border-transparent transition-colors text-sm shadow-sm";
-                const normalClass = "border rounded py-2 text-center font-bold bg-white text-gray-600 border-gray-200 transition-colors text-sm hover:bg-gray-50";
+                const activeClass = "border rounded py-2.5 text-center font-bold text-white border-transparent transition-colors text-sm shadow-sm";
+                const normalClass = "border rounded py-2.5 text-center font-bold bg-gray-50 text-gray-600 border-gray-200 transition-colors text-sm hover:bg-gray-100";
                 
                 const btn3Class = savedVal === 'ดี' ? `${activeClass} bg-green-600` : normalClass;
                 const btn2Class = savedVal === 'ปกติ' ? `${activeClass} bg-blue-600` : normalClass;
                 const btn1Class = savedVal === 'ชั่ว' ? `${activeClass} bg-red-600` : normalClass;
 
+                const card = document.createElement("div");
+                card.className = `bg-white p-4 rounded-xl shadow-sm ${borderClass} relative card-student`;
+                card.id = `card_${student.sid}`;
+                card.setAttribute('data-sid', student.sid);
+                card.setAttribute('data-sno', student.sno);
+                card.setAttribute('data-fullname', student.fullname);
+
                 card.innerHTML = `
-                    <div class="flex justify-between items-start pb-3 mb-3">
+                    <div class="flex justify-between items-start pb-3 mb-3 border-b border-gray-100">
                         <div class="flex items-center gap-3">
                             <div class="relative">
                                 <img src="${profileImg}" alt="Profile" class="w-12 h-12 rounded-full object-cover border-2 ${imgBorder} shadow-sm" onerror="this.src='https://cdn-icons-png.flaticon.com/512/149/149071.png'">
                                 <div class="absolute -bottom-1 -right-1 bg-blue-100 text-blue-700 border border-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold shadow-sm">${student.sno}</div>
                             </div>
                             <div>
-                                <p class="font-bold text-gray-800 text-sm leading-tight">${student.fullname} ${badgeHtml}</p>
+                                <p class="font-bold text-gray-800 text-sm leading-tight">${student.fullname} <span id="badge_${student.sid}">${badgeHtml}</span></p>
                                 <p class="text-[10px] text-gray-500 mt-0.5">รหัส: ${student.sid}</p>
                             </div>
                         </div>
@@ -208,28 +220,12 @@
                         </button>
                     </div>
 
-                    <div class="bg-gray-50 rounded-xl p-2.5 border border-gray-100 flex flex-col gap-1.5 px-3 mb-3">
-                        <div class="flex justify-between items-center text-xs">
-                            <div class="font-bold text-gray-600">ผลประเมินคุณธรรม:</div>
-                            <div id="res_${student.sid}" class="text-xs font-bold ${resColor}">${savedVal || 'รอข้อมูล'}</div>
-                        </div>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button type="button" onclick="selectScore('${student.sid}', 'ดี')" id="btn_${student.sid}_3" class="${btn3Class}" ${readonlyAttr}>ดี</button>
+                        <button type="button" onclick="selectScore('${student.sid}', 'ปกติ')" id="btn_${student.sid}_2" class="${btn2Class}" ${readonlyAttr}>ปกติ</button>
+                        <button type="button" onclick="selectScore('${student.sid}', 'ชั่ว')" id="btn_${student.sid}_1" class="${btn1Class}" ${readonlyAttr}>ชั่ว</button>
                     </div>
-
-                    <div id="eval_form_${student.sid}" class="space-y-1 pt-1 mt-1 text-left border-t border-gray-100">
-                        <div class="flex flex-col gap-2 pb-2 mb-2 mt-2">
-                            <div class="grid grid-cols-3 gap-2 mt-1">
-                                <button type="button" onclick="selectScore('${student.sid}', 'ดี')" id="btn_${student.sid}_3" class="${btn3Class}" ${readonlyAttr}>ดี</button>
-                                <button type="button" onclick="selectScore('${student.sid}', 'ปกติ')" id="btn_${student.sid}_2" class="${btn2Class}" ${readonlyAttr}>ปกติ</button>
-                                <button type="button" onclick="selectScore('${student.sid}', 'ชั่ว')" id="btn_${student.sid}_1" class="${btn1Class}" ${readonlyAttr}>ชั่ว</button>
-                            </div>
-                            <input type="hidden" id="val_${student.sid}" value="${savedVal}">
-                        </div>
-                        <div class="pt-1 ${saveBtnClass}">
-                            <button id="btn_save_${student.sid}" onclick="saveData('${student.sid}', '${student.sno}', '${student.fullname}')" class="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-3 rounded-xl shadow transition flex items-center justify-center gap-1">
-                                <i class="fa-solid fa-save"></i> บันทึกผลการประเมิน
-                            </button>
-                        </div>
-                    </div>
+                    <input type="hidden" id="val_${student.sid}" value="${savedVal}" data-original="${savedVal}">
                 `;
                 container.appendChild(card);
             });
@@ -242,73 +238,109 @@
             
             Object.keys(levels).forEach(lvl => {
                 const btn = document.getElementById(`btn_${sid}_${levels[lvl]}`);
-                if(btn) btn.className = "border rounded py-2 text-center font-bold bg-white text-gray-600 border-gray-200 transition-colors text-sm hover:bg-gray-50";
+                if(btn) btn.className = "border rounded py-2.5 text-center font-bold bg-gray-50 text-gray-600 border-gray-200 transition-colors text-sm hover:bg-gray-100";
             });
             
             const activeNum = levels[level];
             const activeBtn = document.getElementById(`btn_${sid}_${activeNum}`);
-            if(activeBtn) activeBtn.className = `border rounded py-2 text-center font-bold text-white border-transparent transition-colors text-sm shadow-sm ${classes[activeNum]}`;
+            if(activeBtn) activeBtn.className = `border rounded py-2.5 text-center font-bold text-white border-transparent transition-colors text-sm shadow-sm ${classes[activeNum]}`;
             
             document.getElementById(`val_${sid}`).value = level;
-            
-            // อัปเดตข้อความแสดงผลบนการ์ดทันที
-            const resEl = document.getElementById(`res_${sid}`);
-            resEl.innerText = level;
-            let resColor = "text-gray-500";
-            if(level === "ดี") resColor = "text-green-600";
-            else if(level === "ปกติ") resColor = "text-blue-500";
-            else if(level === "ชั่ว") resColor = "text-red-500";
-            resEl.className = `text-xs font-bold ${resColor}`;
         }
 
-        async function saveData(sid, sno, fullname) {
-            const btn = document.getElementById(`btn_save_${sid}`);
-            const val = document.getElementById(`val_${sid}`).value;
-            
-            if(!val) { Swal.fire('แจ้งเตือน', 'กรุณากดเลือกผลการประเมิน (ดี/ปกติ/ชั่ว)', 'warning'); return; }
-
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> กำลังบันทึกผล...';
-
-            try {
-                const payload = {
-                    action: "saveMoralRecord", term: globalTerm, month: globalMonth, room: globalTeacherRoom,
-                    sid: sid, sno: sno, fullname: fullname, result: val
-                };
+        async function saveAllData() {
+            // เก็บรายชื่อนักเรียนที่มีการเปลี่ยน/ระบุผลการประเมิน
+            let queue = [];
+            document.querySelectorAll('.card-student').forEach(card => {
+                const sid = card.getAttribute('data-sid');
+                const sno = card.getAttribute('data-sno');
+                const fullname = card.getAttribute('data-fullname');
+                const val = document.getElementById(`val_${sid}`).value;
+                const orig = document.getElementById(`val_${sid}`).getAttribute('data-original');
                 
-                const res = await fetch(GAS_WEB_APP_URL, { method: 'POST', body: JSON.stringify(payload), headers: { 'Content-Type': 'text/plain;charset=utf-8' } });
-                const json = await res.json();
-                
-                if (json.status === 'success') {
-                    const card = document.getElementById(`card_${sid}`);
-                    card.classList.remove('border-gray-200'); card.classList.add('border-green-400', 'border-2');
-                    
-                    btn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
-                    btn.classList.add('bg-green-500');
-                    btn.innerHTML = '<i class="fa-solid fa-check"></i> บันทึกสำเร็จ';
-                    
-                    setTimeout(() => {
-                        btn.disabled = false;
-                        btn.classList.remove('bg-green-500');
-                        btn.classList.add('bg-blue-600', 'hover:bg-blue-700');
-                        btn.innerHTML = '<i class="fa-solid fa-save"></i> บันทึกผลการประเมิน';
-                    }, 1500);
-                    
-                    const total = document.getElementById('totalCount').innerText;
-                    const greenCards = document.querySelectorAll('.border-green-400').length;
-                    const newPercent = Math.round((greenCards / total) * 100);
-                    
-                    document.getElementById('recordedCount').innerText = greenCards;
-                    document.getElementById('progressPercent').innerText = newPercent + "%";
-                    document.getElementById('progressBar').style.width = newPercent + "%";
-                } else {
-                    Swal.fire('ล้มเหลว', json.message, 'error');
-                    btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-save"></i> บันทึกผลการประเมิน';
+                // ถ้าระบุผลแล้ว และข้อมูลไม่ตรงกับของเดิม (มีการประเมินใหม่/เปลี่ยนแปลง) ให้หยิบเข้าคิวบันทึก
+                if (val && val !== orig) {
+                    queue.push({ sid: sid, sno: sno, fullname: fullname, result: val });
                 }
-            } catch (error) { 
-                Swal.fire('Error', 'ไม่สามารถเชื่อมต่อฐานข้อมูลปลายทางได้', 'error'); 
-                btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-save"></i> บันทึกผลการประเมิน';
-            } 
+            });
+
+            if (queue.length === 0) {
+                Swal.fire('แจ้งเตือน', 'ไม่มีข้อมูลใหม่ที่ต้องบันทึก (หรือคุณยังไม่ได้กดประเมินเพิ่มเติม)', 'info');
+                return;
+            }
+
+            const btn = document.getElementById('btnSaveAll');
+            btn.disabled = true;
+
+            let successCount = 0;
+            let errorCount = 0;
+
+            // หน้าต่างกำลังบันทึก
+            Swal.fire({
+                title: 'กำลังบันทึกข้อมูล...',
+                html: `ดำเนินการแล้ว <b class="text-blue-600 text-lg">0</b> จาก ${queue.length} รายการ<br><span class="text-xs text-gray-500 mt-2 block">กรุณารอสักครู่...</span>`,
+                allowOutsideClick: false,
+                didOpen: () => { Swal.showLoading() }
+            });
+
+            // ส่งข้อมูลตามคิว
+            for (let i = 0; i < queue.length; i++) {
+                const s = queue[i];
+                Swal.getHtmlContainer().querySelector('b').textContent = i + 1;
+                
+                try {
+                    const payload = {
+                        action: "saveMoralRecord", term: globalTerm, month: globalMonth, room: globalTeacherRoom,
+                        sid: s.sid, sno: s.sno, fullname: s.fullname, result: s.result
+                    };
+                    
+                    const res = await fetch(GAS_WEB_APP_URL, { method: 'POST', body: JSON.stringify(payload), headers: { 'Content-Type': 'text/plain;charset=utf-8' } });
+                    const json = await res.json();
+                    
+                    if (json.status === 'success') {
+                        successCount++;
+                        
+                        // อัปเดต UI 
+                        const card = document.getElementById(`card_${s.sid}`);
+                        card.classList.remove('border-gray-200'); 
+                        card.classList.add('border-green-400', 'border-2');
+                        
+                        document.getElementById(`val_${s.sid}`).setAttribute('data-original', s.result);
+                        
+                        const badgeContainer = document.getElementById(`badge_${s.sid}`);
+                        if(badgeContainer && !badgeContainer.innerHTML.includes('ประเมินแล้ว')) {
+                            badgeContainer.innerHTML = `<span class="bg-green-100 text-green-700 text-[10px] px-2 py-0.5 rounded font-bold ml-2">ประเมินแล้ว</span>`;
+                        }
+                    } else {
+                        errorCount++;
+                    }
+                } catch (error) { 
+                    errorCount++;
+                }
+            }
+
+            // คำนวณ % ความคืบหน้าใหม่
+            const total = parseInt(document.getElementById('totalCount').innerText) || 0;
+            const greenCards = document.querySelectorAll('.border-green-400').length;
+            const newPercent = total > 0 ? Math.round((greenCards / total) * 100) : 0;
+            
+            document.getElementById('recordedCount').innerText = greenCards;
+            document.getElementById('progressPercent').innerText = newPercent + "%";
+            document.getElementById('progressBar').style.width = newPercent + "%";
+
+            btn.disabled = false;
+            
+            if (errorCount === 0) {
+                Swal.fire({
+                    title: 'สำเร็จ!',
+                    text: `บันทึกข้อมูลเรียบร้อยแล้ว (${successCount} รายการ)`,
+                    icon: 'success',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            } else {
+                Swal.fire('เสร็จสิ้น', `บันทึกสำเร็จ ${successCount} รายการ, ล้มเหลว ${errorCount} รายการ`, 'warning');
+            }
         }
 
         const modal = document.getElementById('historyModal');
