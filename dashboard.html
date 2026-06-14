@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Dashboard ระบบประเมินคุณธรรม</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <style>
+        body { font-family: 'Sarabun', sans-serif; background-color: #f3f4f6; }
+        .stat-card { background: white; border-radius: 1rem; padding: 1.25rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); border: 1px solid #f3f4f6; }
+        .section-header { font-size: 1.125rem; font-weight: 700; color: #1e3a8a; border-bottom: 2px solid #e5e7eb; padding-bottom: 0.5rem; margin-bottom: 1rem; }
+    </style>
+</head>
+<body class="pb-20 text-gray-800">
+
+    <div class="bg-blue-700 text-white p-6 rounded-b-3xl shadow-lg mb-6 sticky top-0 z-50">
+        <div class="max-w-5xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-4 w-full md:w-auto">
+                <img src="https://img2.pic.in.th/4d3a830f3eb506411.png" class="w-12 h-12 bg-white rounded-full p-1 shadow object-cover">
+                <div>
+                    <h1 class="text-xl font-bold leading-tight">Dashboard ประเมินคุณธรรม</h1>
+                    <p class="text-sm text-blue-200">ระบบประเมินคุณธรรมนักเรียน</p>
+                </div>
+            </div>
+            
+            <div class="flex gap-2 w-full md:w-auto bg-white bg-opacity-20 p-2 rounded-xl backdrop-blur-sm">
+                <select id="filterTerm" class="px-3 py-2 rounded-lg text-sm text-blue-900 font-bold outline-none cursor-pointer w-full md:w-auto">
+                    <option value="1/2569">ภาคเรียน 1/2569</option>
+                    <option value="2/2569">ภาคเรียน 2/2569</option>
+                    <option value="1/2568">ภาคเรียน 1/2568</option>
+                </select>
+                <select id="filterMonth" class="px-3 py-2 rounded-lg text-sm text-blue-900 font-bold outline-none cursor-pointer w-full md:w-auto">
+                    <option value="มกราคม">มกราคม</option> <option value="กุมภาพันธ์">กุมภาพันธ์</option>
+                    <option value="มีนาคม">มีนาคม</option> <option value="เมษายน">เมษายน</option>
+                    <option value="พฤษภาคม">พฤษภาคม</option> <option value="มิถุนายน">มิถุนายน</option>
+                    <option value="กรกฎาคม">กรกฎาคม</option> <option value="สิงหาคม">สิงหาคม</option>
+                    <option value="กันยายน">กันยายน</option> <option value="ตุลาคม">ตุลาคม</option>
+                    <option value="พฤศจิกายน">พฤศจิกายน</option> <option value="ธันวาคม">ธันวาคม</option>
+                </select>
+                <button onclick="fetchDashboardData()" class="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg font-bold shadow transition shrink-0"><i class="fa-solid fa-search"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-5xl mx-auto px-4 space-y-6">
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="stat-card flex flex-col justify-center items-center text-center">
+                <h2 class="text-sm font-bold text-gray-500 uppercase mb-2">ความคืบหน้าการประเมิน</h2>
+                <div class="text-6xl font-black text-blue-600 mb-2" id="overallPercent">0%</div>
+                <div class="text-gray-600 font-medium text-sm">
+                    ประเมินแล้ว <span id="overallRecorded" class="font-bold text-gray-900 text-lg">0</span> จาก <span id="overallTotal" class="font-bold text-gray-900 text-lg">0</span> คน
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-4 mt-4 overflow-hidden shadow-inner">
+                    <div id="overallProgressBar" class="bg-gradient-to-r from-blue-400 to-blue-600 h-full transition-all duration-1000" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <h2 class="text-sm font-bold text-gray-500 uppercase text-center mb-4">สรุปผลการประเมินคุณธรรม (ภาพรวม)</h2>
+                <div class="relative h-48 w-full mb-4">
+                    <canvas id="overallPieChart"></canvas>
+                </div>
+                <div class="flex flex-wrap justify-center gap-x-4 gap-y-2 text-xs font-bold text-gray-600" id="pieLegends"></div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <h2 class="section-header"><i class="fa-solid fa-school"></i> สรุปข้อมูลจำแนกตามห้องเรียน</h2>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left whitespace-nowrap">
+                    <thead class="text-xs text-gray-700 uppercase bg-blue-50 border-b-2 border-blue-200">
+                        <tr>
+                            <th class="px-4 py-3 rounded-tl-lg">ห้องเรียน</th>
+                            <th class="px-4 py-3 text-center">ความคืบหน้า (%)</th>
+                            <th class="px-4 py-3 text-center"><span class="bg-green-600 text-white px-2 py-0.5 rounded text-[10px]">ดี</span></th>
+                            <th class="px-4 py-3 text-center"><span class="bg-blue-600 text-white px-2 py-0.5 rounded text-[10px]">ปกติ</span></th>
+                            <th class="px-4 py-3 text-center rounded-tr-lg"><span class="bg-red-500 text-white px-2 py-0.5 rounded text-[10px]">ชั่ว</span></th>
+                        </tr>
+                    </thead>
+                    <tbody id="roomTableBody" class="divide-y divide-gray-100"></tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwV207I1xtqZV33hfRQorqKmsBpD1vP1g7AJOJJpyj61OqXFiou7-Oz3FePQXlQLpCOYA/exec"; 
+        
+        let pieChartInstance = null;
+        const statusColors = ['#16a34a', '#2563eb', '#ef4444']; // เขียว(ดี), น้ำเงิน(ปกติ), แดง(ชั่ว)
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const now = new Date();
+            const months = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+            document.getElementById('filterMonth').value = months[now.getMonth()];
+            
+            const currentYearBE = now.getFullYear() + 543;
+            const m = now.getMonth(); 
+            let term = (m >= 4 && m <= 9) ? "1/" + currentYearBE : "2/" + ((m <= 3) ? currentYearBE - 1 : currentYearBE);
+            document.getElementById('filterTerm').value = term;
+
+            fetchDashboardData();
+        });
+
+        function fetchDashboardData() {
+            const term = document.getElementById('filterTerm').value;
+            const month = document.getElementById('filterMonth').value;
+
+            Swal.fire({ title: 'กำลังวิเคราะห์ข้อมูล...', allowOutsideClick: false, didOpen: () => { Swal.showLoading() } });
+            
+            fetch(GAS_WEB_APP_URL, {
+                method: 'POST',
+                body: JSON.stringify({ action: "getMoralDashboardData", term: term, month: month }),
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+            })
+            .then(res => res.json())
+            .then(result => {
+                Swal.close();
+                if (result.status === 'success') {
+                    renderOverall(result);
+                    renderRoomTable(result.roomStats);
+                } else {
+                    Swal.fire('ข้อผิดพลาด', result.message, 'error');
+                }
+            }).catch(err => { 
+                Swal.fire('Error', 'ไม่สามารถเชื่อมต่อฐานข้อมูลได้', 'error');
+            });
+        }
+
+        function renderOverall(data) {
+            const percent = data.totalStudents > 0 ? Math.round((data.recordedTotal / data.totalStudents) * 100) : 0;
+            document.getElementById('overallPercent').innerText = percent + "%";
+            document.getElementById('overallRecorded').innerText = data.recordedTotal;
+            document.getElementById('overallTotal').innerText = data.totalStudents;
+            document.getElementById('overallProgressBar').style.width = percent + "%";
+
+            const stats = data.overallStatus;
+            const dataset = [stats["ดี"] || 0, stats["ปกติ"] || 0, stats["ชั่ว"] || 0];
+            
+            const ctx = document.getElementById('overallPieChart').getContext('2d');
+            if(pieChartInstance) pieChartInstance.destroy();
+            
+            pieChartInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['ดี', 'ปกติ', 'ชั่ว'],
+                    datasets: [{ data: dataset, backgroundColor: statusColors, borderWidth: 2, borderColor: '#ffffff' }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, cutout: '65%' }
+            });
+
+            const calcP = (val) => data.recordedTotal > 0 ? Math.round((val/data.recordedTotal)*100) : 0;
+            document.getElementById('pieLegends').innerHTML = `
+                <div class="flex items-center"><div class="w-3 h-3 bg-green-600 rounded-full mr-1"></div>ดี: ${dataset[0]} (${calcP(dataset[0])}%)</div>
+                <div class="flex items-center"><div class="w-3 h-3 bg-blue-600 rounded-full mr-1"></div>ปกติ: ${dataset[1]} (${calcP(dataset[1])}%)</div>
+                <div class="flex items-center"><div class="w-3 h-3 bg-red-500 rounded-full mr-1"></div>ชั่ว: ${dataset[2]} (${calcP(dataset[2])}%)</div>
+            `;
+        }
+
+        function renderRoomTable(roomStats) {
+            const tbody = document.getElementById('roomTableBody');
+            tbody.innerHTML = '';
+            
+            const sortedRooms = Object.keys(roomStats).sort((a, b) => {
+                const order = { 'อ': 1, 'ป': 2, 'ม': 3 };
+                const aLevel = order[a.charAt(0)] || 99;
+                const bLevel = order[b.charAt(0)] || 99;
+                if (aLevel !== bLevel) return aLevel - bLevel;
+                return a.localeCompare(b);
+            });
+
+            sortedRooms.forEach(room => {
+                const stat = roomStats[room];
+                const percent = stat.total > 0 ? Math.round((stat.recorded / stat.total) * 100) : 0;
+                const status = stat.status;
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="px-4 py-3 font-bold text-gray-800">${room}</td>
+                    <td class="px-4 py-3 text-center">
+                        <div class="flex items-center justify-center gap-2" title="${stat.recorded} / ${stat.total} คน">
+                            <div class="w-16 bg-gray-200 rounded-full h-2 overflow-hidden"><div class="bg-blue-500 h-full" style="width: ${percent}%"></div></div>
+                            <span class="text-xs font-bold ${percent === 100 ? 'text-green-600' : 'text-gray-500'}">${percent}%</span>
+                        </div>
+                    </td>
+                    <td class="px-4 py-3 text-center font-bold text-green-600">${status["ดี"] > 0 ? status["ดี"] : '-'}</td>
+                    <td class="px-4 py-3 text-center font-bold text-blue-600">${status["ปกติ"] > 0 ? status["ปกติ"] : '-'}</td>
+                    <td class="px-4 py-3 text-center font-bold text-red-500">${status["ชั่ว"] > 0 ? status["ชั่ว"] : '-'}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+    </script>
+</body>
+</html>
