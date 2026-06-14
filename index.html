@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>ระบบประเมินคุณธรรม</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Sarabun', sans-serif; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+        .login-bg {
+            background-image: url('https://images.unsplash.com/photo-1577896851231-70ef18881754?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80');
+            background-size: cover;
+            background-position: center;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen relative pb-20">
+
+  <div id="login-view" class="min-h-screen flex flex-col items-center justify-center relative login-bg">
+    <div class="absolute inset-0 bg-blue-900 bg-opacity-60"></div>
+    <div class="relative z-10 w-full max-w-sm px-6 flex flex-col items-center">
+      <div class="bg-white p-6 rounded-2xl shadow-xl w-full mb-6">
+
+        <div class="text-center mb-4">
+            <img src="https://img2.pic.in.th/KhodtimAPP.png" alt="Logo" class="w-auto h-28 mb-4 flex-col items-center mx-auto">
+            <h2 class="text-center font-bold text-blue-700 text-base border-b pb-2">ระบบประเมินคุณธรรม</h2>
+        </div>
+        
+        <div class="mb-3">
+          <label class="block text-gray-700 text-xs font-bold mb-1">ชื่อผู้ใช้ (Username)</label>
+          <input type="text" id="username" class="w-full px-4 py-2.5 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+        </div>
+        <div class="mb-5">
+          <label class="block text-gray-700 text-xs font-bold mb-1">รหัสผ่าน (Password)</label>
+          <input type="password" id="password" class="w-full px-4 py-2.5 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
+        </div>
+
+        <button onclick="handleLogin()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg shadow-md transition duration-200 text-sm">
+          เข้าสู่ระบบ
+        </button>
+      </div>
+    </div>
+  </div>
+
+<script>
+    const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwV207I1xtqZV33hfRQorqKmsBpD1vP1g7AJOJJpyj61OqXFiou7-Oz3FePQXlQLpCOYA/exec"; 
+
+    function getSystemPeriod() {
+      const now = new Date();
+      const months = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+      const monthName = months[now.getMonth()];
+      const currentYearBE = now.getFullYear() + 543;
+      let term = "";
+      const m = now.getMonth(); 
+      if (m >= 4 && m <= 9) { term = "1/" + currentYearBE; } else {
+        const termYear = (m <= 3) ? currentYearBE - 1 : currentYearBE;
+        term = "2/" + termYear;
+      }
+      return { term: term, month: monthName };
+    }
+
+    document.addEventListener("DOMContentLoaded", () => { checkLocalSession(); });
+
+    async function checkLocalSession() {
+      const storedUser = localStorage.getItem("charAssessUser");
+      if (storedUser) {
+        try {
+          const period = getSystemPeriod();
+          const u = JSON.parse(storedUser);
+          const response = await fetch(GAS_WEB_APP_URL, {
+            method: 'POST', 
+            body: JSON.stringify({ action: "login", username: u.username, password: u.password }),
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+          });
+          const result = await response.json();
+          if (result.status === "success") {
+            window.location.href = `students.html?room=${encodeURIComponent(result.teacherRoom)}&tname=${encodeURIComponent(result.teacherName)}&term=${encodeURIComponent(period.term)}&month=${encodeURIComponent(period.month)}`;
+          } else { localStorage.removeItem("charAssessUser"); }
+        } catch (error) { }
+      }
+    }
+
+    async function handleLogin() {
+      const user = document.getElementById("username").value.trim();
+      const pass = document.getElementById("password").value.trim();
+
+      if(!user || !pass) { Swal.fire("แจ้งเตือน", "กรุณากรอกข้อมูลให้ครบถ้วน", "warning"); return; }
+      const period = getSystemPeriod();
+
+      Swal.fire({ title: 'กำลังตรวจสอบ...', allowOutsideClick: false, didOpen: () => { Swal.showLoading() } });
+
+      try {
+        const response = await fetch(GAS_WEB_APP_URL, {
+          method: 'POST', 
+          body: JSON.stringify({ action: "login", username: user, password: pass }),
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+        });
+        const result = await response.json();
+        if (result.status === "success") {
+          localStorage.setItem("charAssessUser", JSON.stringify({username: user, password: pass}));
+          Swal.fire({ title: 'สำเร็จ!', text: 'เข้าสู่ระบบเรียบร้อย', icon: 'success', timer: 1500, showConfirmButton: false }).then(() => {
+              window.location.href = `students.html?room=${encodeURIComponent(result.teacherRoom)}&tname=${encodeURIComponent(result.teacherName)}&term=${encodeURIComponent(period.term)}&month=${encodeURIComponent(period.month)}`;
+          });
+        } else { Swal.fire("ข้อผิดพลาด", result.message, "error"); }
+      } catch (error) { Swal.fire("ข้อผิดพลาด", "เชื่อมต่อฐานข้อมูลไม่สำเร็จ", "error"); }
+    }
+  </script>
+</body>
+</html>
