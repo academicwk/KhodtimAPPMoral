@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>ระบบประเมินคุณธรรม</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <style>
+        body { font-family: 'Sarabun', sans-serif; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+        .modal-overlay { background-color: rgba(0, 0, 0, 0.5); backdrop-filter: blur(2px); }
+        .modal-content { transition: transform 0.3s ease-out; transform: translateY(100%); }
+        .modal-open .modal-content { transform: translateY(0); }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+
+    <div class="max-w-md mx-auto bg-gray-50 min-h-screen shadow-md relative pb-10">
+        <div class="bg-blue-700 text-white p-4 rounded-b-3xl shadow-lg relative z-10">
+            <div class="flex justify-between items-start mb-2">
+                <div class="flex items-center space-x-3">
+                    <img src="https://img2.pic.in.th/4d3a830f3eb506411.png" alt="Logo" class="w-10 h-10 bg-white rounded-full p-1 shadow-sm object-cover">
+                    <div>
+                        <p class="text-sm text-blue-200" id="record-period">ประจำเดือน...</p>
+                        <p id="list-teacher-profile" class="font-bold text-lg leading-tight">กำลังตรวจสอบข้อมูล...</p>
+                    </div>
+                </div>
+                <button onclick="handleLogout()" class="text-[10px] font-bold bg-white text-blue-700 px-3 py-1.5 rounded-full shadow hover:bg-blue-50 transition">ออกจากระบบ</button>
+            </div>
+            <div class="mt-4 bg-white bg-opacity-20 p-3 rounded-xl border border-white border-opacity-30 backdrop-blur-sm text-center">
+                <h2 class="text-lg font-bold">ประเมินคุณธรรม</h2>
+            </div>
+        </div>
+
+        <div id="readonlyBanner" class="hidden px-4 mt-3">
+            <div class="bg-amber-100 border border-amber-300 text-amber-800 p-3 rounded-xl shadow-sm text-center">
+                <p class="text-sm font-bold"><i class="fa-solid fa-lock text-amber-600"></i> โหมดอ่านอย่างเดียว</p>
+                <p class="text-xs mt-1">ระบบอยู่นอกช่วงเวลาเปิดรับข้อมูล</p>
+            </div>
+        </div> 
+        
+        <div id="adminPanel" class="hidden px-4 mt-3">
+            <div class="bg-purple-100 border border-purple-300 p-3 rounded-xl shadow-sm flex justify-between items-center">
+                <div>
+                    <p class="text-sm font-bold text-purple-800"><i class="fa-solid fa-unlock-keyhole"></i> เปิดระบบกรณีพิเศษ</p>
+                    <p class="text-[10px] text-purple-600">อนุญาตให้ทุกคนบันทึกข้อมูลนอกเวลาได้</p>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="overrideToggle" class="sr-only peer" onchange="handleToggleOverride()">
+                    <div class="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                </label>
+            </div>
+        </div>
+
+        <div class="px-4 mt-3 relative z-20">
+            <div class="bg-white p-4 rounded-2xl shadow border border-gray-100 text-center">
+                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wide">ความคืบหน้าการบันทึกข้อมูล</p>
+                <div class="my-1 flex items-baseline justify-center space-x-2">
+                    <span id="progressPercent" class="text-5xl font-black text-blue-600 tracking-tighter">0%</span>
+                </div>
+                <p class="text-[11px] font-medium text-gray-500 mb-3 border-b border-gray-50 pb-3">
+                    ประเมินแล้ว <span id="recordedCount" class="font-bold text-gray-800 text-sm">0</span> จาก <span id="totalCount" class="font-bold text-gray-800 text-sm">0</span> คน
+                </p>
+                <div class="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
+                    <div id="progressBar" class="bg-gradient-to-r from-blue-400 to-blue-600 h-full rounded-full transition-all duration-1000 ease-out" style="width: 0%"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="studentListContainer" class="px-4 mt-4 space-y-4"></div>
+    </div>
+
+    <div id="historyModal" class="fixed inset-0 modal-overlay hidden z-50 flex flex-col justify-end max-w-md mx-auto">
+        <div class="modal-content bg-white w-full rounded-t-3xl shadow-2xl h-[60vh] flex flex-col">
+            <div class="p-4 border-b flex justify-between items-center bg-gray-50 rounded-t-3xl">
+                <div>
+                    <h3 class="font-bold text-gray-800 text-lg">ประวัติผลการประเมิน</h3>
+                    <p id="modalStudentName" class="text-sm text-blue-600 font-bold">-</p>
+                </div>
+                <button onclick="closeHistoryModal()" class="w-8 h-8 bg-gray-200 text-gray-600 rounded-full flex items-center justify-center font-bold hover:bg-gray-300"><i class="fa-solid fa-times"></i></button>
+            </div>
+            <div id="historyContainer" class="p-4 overflow-y-auto flex-1 bg-gray-100 space-y-3"></div>
+        </div>
+    </div>
+
+    <script>
+        const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwV207I1xtqZV33hfRQorqKmsBpD1vP1g7AJOJJpyj61OqXFiou7-Oz3FePQXlQLpCOYA/exec";
+        
+        let globalTeacherRoom = "";
+        let globalTeacherName = "";
+        let globalTerm = "";
+        let globalMonth = "";
+        let isReadOnly = false;
+
+        const EVAL_ITEMS = [
+            { id: "m1", label: "1. ความซื่อสัตย์สุจริต (ประพฤติตรงตามความเป็นจริง)", group: "การประเมินคุณธรรม" },
+            { id: "m2", label: "2. ความรับผิดชอบ (ตั้งใจปฏิบัติหน้าที่ที่ได้รับมอบหมาย)", group: "การประเมินคุณธรรม" },
+            { id: "m3", label: "3. ความกตัญญูกตเวที (รู้คุณและตอบแทนผู้มีพระคุณ)", group: "การประเมินคุณธรรม" },
+            { id: "m4", label: "4. ความเมตตากรุณา (มีความเอื้อเฟื้อเผื่อแผ่ช่วยเหลือผู้อื่น)", group: "การประเมินคุณธรรม" }
+        ];
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            globalTeacherRoom = urlParams.get('room');
+            globalTeacherName = urlParams.get('tname');
+            globalTerm = urlParams.get('term');
+            globalMonth = urlParams.get('month');
+
+            if (!globalTeacherRoom || !globalTerm || !globalMonth) { window.location.href = 'index.html'; return; } 
+            
+            document.getElementById('list-teacher-profile').innerText = `${globalTeacherName} (ห้อง ${globalTeacherRoom})`;
+            document.getElementById('record-period').innerText = `เดือน${globalMonth} (ภาคเรียน ${globalTerm})`;
+
+            fetchStudents();
+        });
+
+        function fetchStudents() {
+            const container = document.getElementById('studentListContainer');
+            container.innerHTML = '<div class="text-center py-10 text-gray-400 font-bold"><i class="fa-solid fa-spinner fa-spin text-3xl mb-2"></i><br>กำลังโหลดข้อมูล...</div>';
+
+            fetch(GAS_WEB_APP_URL, {
+                method: 'POST',
+                body: JSON.stringify({ action: "getStudentsByRoom", room: globalTeacherRoom, term: globalTerm, month: globalMonth }),
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+            })
+            .then(res => res.json())
+            .then(result => {
+                if (result.status === 'success') { 
+                    if (globalTeacherName === "นายพีระศิน ไชยศร" || globalTeacherName === "พีระศิน ไชยศร") {
+                        document.getElementById('adminPanel').classList.remove('hidden');
+                        document.getElementById('overrideToggle').checked = result.override;
+                    }
+
+                    const today = new Date().getDate();
+                    if (today < 16 && !result.override) {
+                        isReadOnly = true;
+                        document.getElementById('readonlyBanner').classList.remove('hidden');
+                    } else {
+                        isReadOnly = false;
+                        document.getElementById('readonlyBanner').classList.add('hidden');
+                    }
+
+                    renderStudentList(result.data); 
+                }                
+                else { Swal.fire('ข้อผิดพลาด', result.message, 'error'); }
+            }).catch(err => { container.innerHTML = `<div class="bg-red-50 text-red-500 p-4 rounded-xl text-center text-sm font-bold">เชื่อมต่อล้มเหลว</div>`; });
+        }
+
+        function updateProgress(students) {
+            const total = students.length;
+            const recorded = students.filter(s => s.isRecorded).length; 
+            const percent = total > 0 ? Math.round((recorded / total) * 100) : 0;
+
+            document.getElementById('totalCount').innerText = total;
+            document.getElementById('recordedCount').innerText = recorded;
+            document.getElementById('progressPercent').innerText = percent + "%";
+            document.getElementById('progressBar').style.width = percent + "%";
+        }
+
+        function renderStudentList(students) {
+            const container = document.getElementById('studentListContainer');
+            container.innerHTML = '';
+            
+            updateProgress(students);
+            
+            if(!students || students.length === 0) {
+                container.innerHTML = `<div class="bg-red-50 border border-red-200 p-4 rounded-xl text-center"><p class="text-red-500 font-bold text-sm">ไม่พบรายชื่อนักเรียนห้อง ${globalTeacherRoom}</p></div>`; return;
+            }
+
+            students.forEach(student => {
+                const isRec = student.isRecorded;
+                let borderClass = isRec ? "border-2 border-green-400" : "border border-gray-200";
+                let badgeHtml = isRec ? `<span class="bg-green-100 text-green-700 text-[10px] px-2 py-0.5 rounded font-bold ml-2">ประเมินแล้ว</span>` : '';
+                
+                let resColor = "text-gray-500";
+                if(student.overall_result === "ดี") resColor = "text-green-600";
+                else if(student.overall_result === "ปกติ") resColor = "text-blue-500";
+                else if(student.overall_result === "ชั่ว") resColor = "text-red-500";
+
+                const card = document.createElement("div");
+                card.className = `bg-white p-4 rounded-xl shadow-sm ${borderClass} relative`;
+                card.id = `card_${student.sid}`;
+                
+                const readonlyAttr = isReadOnly ? "disabled" : "";
+                const saveBtnClass = isReadOnly ? "hidden" : "block";
+                const profileImg = student.photo ? student.photo : 'https://cdn-icons-png.flaticon.com/512/149/149071.png';
+                const imgBorder = isRec ? "border-green-400" : "border-gray-200";
+
+                let evalFormHtml = '';
+                let currentGroup = '';
+                
+                EVAL_ITEMS.forEach(item => {
+                    if (currentGroup !== item.group) {
+                        currentGroup = item.group;
+                        evalFormHtml += `<div class="font-bold text-[11px] text-blue-900 mt-4 mb-2 border-b pb-1 bg-blue-50 px-2 py-0.5 rounded flex justify-between items-center">
+                            <span>${currentGroup}</span>
+                            <button type="button" onclick="massSelect('${student.sid}', '${item.group.substring(0, 7)}')" class="bg-blue-600 text-white px-2 py-0.5 rounded text-[9px] hover:bg-blue-700">ให้ 'ดี' ทั้งหมด</button>
+                        </div>`;
+                    }
+                    
+                    const savedVal = student[item.id] || '';
+                    const activeClass = "border rounded py-1.5 text-center font-bold text-white border-transparent transition-colors text-xs";
+                    const normalClass = "border rounded py-1.5 text-center font-bold bg-white text-gray-600 border-gray-200 transition-colors text-xs hover:bg-gray-50";
+                    
+                    const btn3Class = savedVal === 'ดี' ? `${activeClass} bg-green-600` : normalClass;
+                    const btn2Class = savedVal === 'ปกติ' ? `${activeClass} bg-blue-600` : normalClass;
+                    const btn1Class = savedVal === 'ชั่ว' ? `${activeClass} bg-red-600` : normalClass;
+
+                    evalFormHtml += `
+                        <div class="flex flex-col gap-1 border-b border-gray-50 pb-2 mb-2 text-xs" data-group="${item.group.substring(0, 7)}">
+                            <span class="text-gray-700 font-medium">${item.label}</span>
+                            <div class="grid grid-cols-3 gap-1 mt-1">
+                                <button type="button" onclick="selectScore('${student.sid}', '${item.id}', 'ดี')" id="btn_${student.sid}_${item.id}_3" class="${btn3Class}" ${readonlyAttr}>ดี</button>
+                                <button type="button" onclick="selectScore('${student.sid}', '${item.id}', 'ปกติ')" id="btn_${student.sid}_${item.id}_2" class="${btn2Class}" ${readonlyAttr}>ปกติ</button>
+                                <button type="button" onclick="selectScore('${student.sid}', '${item.id}', 'ชั่ว')" id="btn_${student.sid}_${item.id}_1" class="${btn1Class}" ${readonlyAttr}>ชั่ว</button>
+                            </div>
+                            <input type="hidden" id="val_${student.sid}_${item.id}" value="${savedVal}">
+                        </div>
+                    `;
+                });
+
+                card.innerHTML = `
+                    <div class="flex justify-between items-start border-b border-gray-100 pb-3 mb-3">
+                        <div class="flex items-center gap-3">
+                            <div class="relative">
+                                <img src="${profileImg}" alt="Profile" class="w-12 h-12 rounded-full object-cover border-2 ${imgBorder} shadow-sm" onerror="this.src='https://cdn-icons-png.flaticon.com/512/149/149071.png'">
+                                <div class="absolute -bottom-1 -right-1 bg-blue-100 text-blue-700 border border-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold shadow-sm">${student.sno}</div>
+                            </div>
+                            <div>
+                                <p class="font-bold text-gray-800 text-sm leading-tight">${student.fullname} ${badgeHtml}</p>
+                                <p class="text-[10px] text-gray-500 mt-0.5">รหัส: ${student.sid}</p>
+                            </div>
+                        </div>
+                        <button onclick="openHistoryModal('${student.sid}', '${student.fullname}')" class="text-gray-400 hover:text-blue-600 bg-gray-50 hover:bg-blue-50 w-8 h-8 rounded-lg transition flex items-center justify-center shrink-0 shadow-sm" title="ดูประวัติ">
+                            <i class="fa-solid fa-clock-rotate-left"></i>
+                        </button>
+                    </div>
+
+                    <div class="bg-gray-50 rounded-xl p-2.5 border border-gray-100 flex flex-col gap-1.5 px-3 mb-3">
+                        <div class="flex justify-between items-center text-xs pt-1.5 mt-0.5">
+                            <div class="font-bold text-gray-600">สรุปผลประเมินคุณธรรม:</div>
+                            <div id="res_${student.sid}" class="text-xs font-bold ${resColor}">${student.overall_result || 'รอข้อมูล'}</div>
+                        </div>
+                    </div>
+
+                    <button onclick="toggleEvalForm('${student.sid}')" class="w-full bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold py-2.5 rounded-xl transition flex items-center justify-center gap-1">
+                        <i class="fa-solid fa-chevron-down transition-transform duration-200" id="icon_toggle_${student.sid}"></i> บันทึกข้อมูลการประเมิน
+                    </button>
+                    
+                    <div id="eval_form_${student.sid}" class="hidden space-y-1 pt-3 mt-1 text-left">
+                        ${evalFormHtml}
+                        <div class="pt-3 ${saveBtnClass}">
+                            <button id="btn_${student.sid}" onclick="saveData('${student.sid}', '${student.sno}', '${student.fullname}')" class="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-3 rounded-xl shadow transition flex items-center justify-center gap-1">
+                                <i class="fa-solid fa-save"></i> บันทึกผลการประเมินรายบุคคล
+                            </button>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function toggleEvalForm(sid) {
+            const form = document.getElementById(`eval_form_${sid}`);
+            const icon = document.getElementById(`icon_toggle_${sid}`);
+            if (form.classList.contains('hidden')) {
+                form.classList.remove('hidden');
+                icon.style.transform = 'rotate(180deg)';
+            } else {
+                form.classList.add('hidden');
+                icon.style.transform = 'rotate(0deg)';
+            }
+        }
+
+        function selectScore(sid, itemId, level) {
+            if (isReadOnly) return;
+            const levels = {'ดี': 3, 'ปกติ': 2, 'ชั่ว': 1};
+            const classes = { 3: 'bg-green-600 text-white border-green-600', 2: 'bg-blue-600 text-white border-blue-600', 1: 'bg-red-600 text-white border-red-600' };
+            
+            Object.keys(levels).forEach(lvl => {
+                const btn = document.getElementById(`btn_${sid}_${itemId}_${levels[lvl]}`);
+                if(btn) btn.className = "border rounded py-1.5 text-center font-bold bg-white text-gray-600 border-gray-200 transition-colors text-xs hover:bg-gray-50";
+            });
+            
+            const activeNum = levels[level];
+            const activeBtn = document.getElementById(`btn_${sid}_${itemId}_${activeNum}`);
+            if(activeBtn) activeBtn.className = `border rounded py-1.5 text-center font-bold text-white border-transparent transition-colors text-xs ${classes[activeNum]}`;
+            
+            document.getElementById(`val_${sid}_${itemId}`).value = level;
+            previewAssessmentSummary(sid);
+        }
+
+        function massSelect(sid, groupPrefix) {
+            EVAL_ITEMS.forEach(item => {
+                if (item.group.startsWith(groupPrefix)) {
+                    selectScore(sid, item.id, 'ดี');
+                }
+            });
+        }
+
+        function calculateMode(values) {
+            const validValues = values.filter(v => v === 'ดี' || v === 'ปกติ' || v === 'ชั่ว');
+            if (validValues.length === 0) return 'รอข้อมูล';
+            
+            const counts = { 'ดี': 0, 'ปกติ': 0, 'ชั่ว': 0 };
+            validValues.forEach(v => counts[v]++);
+            
+            let maxCount = 0; let modes = [];
+            Object.keys(counts).forEach(key => {
+                if (counts[key] > maxCount) { maxCount = counts[key]; modes = [key]; } 
+                else if (counts[key] === maxCount && maxCount > 0) { modes.push(key); }
+            });
+            
+            if (modes.includes('ชั่ว')) return 'ชั่ว';
+            if (modes.includes('ดี')) return 'ดี';
+            if (modes.includes('ปกติ')) return 'ปกติ';
+            return 'รอข้อมูล';
+        }
+
+        function previewAssessmentSummary(sid) {
+            const itemIds = EVAL_ITEMS.map(item => item.id);
+            const vals = itemIds.map(id => document.getElementById(`val_${sid}_${id}`).value);
+            
+            const overallResult = calculateMode(vals);
+            
+            const resEl = document.getElementById(`res_${sid}`);
+            resEl.innerText = overallResult;
+            
+            let resColor = "text-gray-500";
+            if(overallResult === "ดี") resColor = "text-green-600";
+            else if(overallResult === "ปกติ") resColor = "text-blue-500";
+            else if(overallResult === "ชั่ว") resColor = "text-red-500";
+            resEl.className = `text-xs font-bold ${resColor}`;
+        }
+
+        async function saveData(sid, sno, fullname) {
+            const btn = document.getElementById(`btn_${sid}`);
+            const payloadScores = {};
+            let isComplete = true;
+            
+            for (let item of EVAL_ITEMS) {
+                const val = document.getElementById(`val_${sid}_${item.id}`).value;
+                if (!val) isComplete = false;
+                payloadScores[item.id] = val;
+            }
+            
+            if(!isComplete) { Swal.fire('แจ้งเตือน', 'กรุณากดประเมินให้ครบทุกหัวข้อย่อยก่อนบันทึกข้อมูล', 'warning'); return; }
+
+            previewAssessmentSummary(sid);
+            const overallResult = document.getElementById(`res_${sid}`).innerText;
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> กำลังบันทึกผล...';
+
+            try {
+                const payload = {
+                    action: "saveMoralRecord", term: globalTerm, month: globalMonth, room: globalTeacherRoom,
+                    sid: sid, sno: sno, fullname: fullname, result: overallResult,
+                    ...payloadScores
+                };
+                
+                const res = await fetch(GAS_WEB_APP_URL, { method: 'POST', body: JSON.stringify(payload), headers: { 'Content-Type': 'text/plain;charset=utf-8' } });
+                const json = await res.json();
+                
+                if (json.status === 'success') {
+                    const card = document.getElementById(`card_${sid}`);
+                    card.classList.remove('border-gray-200'); card.classList.add('border-green-400', 'border-2');
+                    
+                    btn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+                    btn.classList.add('bg-green-500');
+                    btn.innerHTML = '<i class="fa-solid fa-check"></i> บันทึกสำเร็จ';
+                    
+                    setTimeout(() => {
+                        btn.disabled = false;
+                        btn.classList.remove('bg-green-500');
+                        btn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+                        btn.innerHTML = '<i class="fa-solid fa-save"></i> บันทึกผลการประเมินรายบุคคล';
+                        toggleEvalForm(sid);
+                    }, 1500);
+                    
+                    const total = document.getElementById('totalCount').innerText;
+                    const greenCards = document.querySelectorAll('.border-green-400').length;
+                    const newPercent = Math.round((greenCards / total) * 100);
+                    
+                    document.getElementById('recordedCount').innerText = greenCards;
+                    document.getElementById('progressPercent').innerText = newPercent + "%";
+                    document.getElementById('progressBar').style.width = newPercent + "%";
+                } else {
+                    Swal.fire('ล้มเหลว', json.message, 'error');
+                    btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-save"></i> บันทึกผลการประเมินรายบุคคล';
+                }
+            } catch (error) { 
+                Swal.fire('Error', 'ไม่สามารถเชื่อมต่อฐานข้อมูลปลายทางได้', 'error'); 
+                btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-save"></i> บันทึกผลการประเมินรายบุคคล';
+            } 
+        }
+
+        const modal = document.getElementById('historyModal');
+        const historyContainer = document.getElementById('historyContainer');
+
+        function openHistoryModal(sid, fullname) {
+            document.getElementById('modalStudentName').innerText = fullname;
+            historyContainer.innerHTML = '<div class="text-center py-8 text-gray-400"><i class="fa-solid fa-spinner fa-spin text-2xl"></i><br>กำลังดึงข้อมูล...</div>';
+            modal.classList.remove('hidden');
+            setTimeout(() => modal.classList.add('modal-open'), 10); 
+
+            fetch(GAS_WEB_APP_URL, {
+                method: 'POST', body: JSON.stringify({ action: "getStudentHistory", sid: sid }),
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+            })
+            .then(res => res.json())
+            .then(result => {
+                if (result.status === 'success') {
+                    if(result.data.length === 0) {
+                        historyContainer.innerHTML = '<div class="text-center py-10 text-gray-400 font-bold">ไม่พบประวัติการประเมิน</div>';
+                        return;
+                    }
+                    let html = '';
+                    result.data.forEach(rec => {
+                        let resColor = "text-gray-500";
+                        if(rec.result === "ดี") resColor = "text-green-600";
+                        else if(rec.result === "ปกติ") resColor = "text-blue-500";
+                        else if(rec.result === "ชั่ว") resColor = "text-red-500";
+
+                        html += `
+                            <div class="bg-white p-3 rounded-xl shadow-sm border border-gray-200">
+                                <div class="flex justify-between items-center">
+                                    <span class="font-bold text-blue-800 text-sm"><i class="fa-regular fa-calendar-check mr-1"></i> ${rec.month}</span>
+                                    <span class="text-[10px] text-gray-400">ภาคเรียน ${rec.term}</span>
+                                </div>
+                                <div class="flex justify-between items-center text-xs mt-2 pt-2 border-t border-gray-50">
+                                    <span class="text-gray-500">ผลการประเมินคุณธรรม:</span>
+                                    <span class="font-bold ${resColor} bg-gray-50 px-2 py-1 rounded">${rec.result || '-'}</span>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    historyContainer.innerHTML = html;
+                } else { historyContainer.innerHTML = `<div class="text-center text-red-500 py-4">${result.message}</div>`; }
+            }).catch(err => { historyContainer.innerHTML = '<div class="text-center text-red-500 py-4">เชื่อมต่อล้มเหลว</div>'; });
+        }
+
+        function closeHistoryModal() {
+            modal.classList.remove('modal-open');
+            setTimeout(() => modal.classList.add('hidden'), 300);
+        }
+
+        function handleLogout() {
+            localStorage.removeItem("charAssessUser");
+            window.location.href = 'index.html';
+        }
+
+        async function handleToggleOverride() {
+            const toggle = document.getElementById('overrideToggle');
+            const state = toggle.checked;
+            toggle.disabled = true;
+            
+            try {
+                const res = await fetch(GAS_WEB_APP_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: "toggleOverride", teacherName: globalTeacherName, state: state }),
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+                });
+                const result = await res.json();
+                
+                if (result.status === 'success') {
+                    Swal.fire({
+                        icon: 'success',
+                        title: state ? 'เปิดระบบสำเร็จ' : 'ปิดระบบสำเร็จ',
+                        text: state ? 'ผู้ใช้ทุกคนสามารถประเมินได้ทันที' : 'ระบบกลับสู่โหมดเวลาปกติ',
+                        timer: 1500,
+                        showConfirmButton: false
+                    }).then(() => {
+                        fetchStudents();
+                    });
+                } else {
+                    Swal.fire('ข้อผิดพลาด', result.message, 'error');
+                    toggle.checked = !state;
+                }
+            } catch(e) {
+                Swal.fire('Error', 'ไม่สามารถเชื่อมต่อได้', 'error');
+                toggle.checked = !state;
+            } finally {
+                toggle.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>  
