@@ -58,7 +58,7 @@
             <div class="bg-white p-4 rounded-2xl shadow border border-gray-100 text-center">
                 <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wide">ความคืบหน้าการบันทึกข้อมูล</p>
                 <div class="my-1 flex items-baseline justify-center space-x-2">
-                    <span id="progressPercent" class="text-5xl font-black text-blue-600 tracking-tighter">0%</span>
+                    <span id="progressPercent" class="text-5xl font-black text-blue-600 tracking-tighter">0.00%</span>
                 </div>
                 <p class="text-[11px] font-medium text-gray-500 mb-3 border-b border-gray-50 pb-3">
                     ประเมินแล้ว <span id="recordedCount" class="font-bold text-gray-800 text-sm">0</span> จาก <span id="totalCount" class="font-bold text-gray-800 text-sm">0</span> คน
@@ -151,7 +151,7 @@
         function updateProgress(students) {
             const total = students.length;
             const recorded = students.filter(s => s.isRecorded).length; 
-            const percent = total > 0 ? Math.round((recorded / total) * 100) : 0;
+            const percent = total > 0 ? (Math.floor((recorded / total) * 100 * 100) / 100).toFixed(2) : "0.00";
 
             document.getElementById('totalCount').innerText = total;
             document.getElementById('recordedCount').innerText = recorded;
@@ -322,7 +322,7 @@
             // คำนวณ % ความคืบหน้าใหม่
             const total = parseInt(document.getElementById('totalCount').innerText) || 0;
             const greenCards = document.querySelectorAll('.border-green-400').length;
-            const newPercent = total > 0 ? Math.round((greenCards / total) * 100) : 0;
+            const newPercent = total > 0 ? (Math.floor((greenCards / total) * 100 * 100) / 100).toFixed(2) : "0.00";
             
             document.getElementById('recordedCount').innerText = greenCards;
             document.getElementById('progressPercent').innerText = newPercent + "%";
