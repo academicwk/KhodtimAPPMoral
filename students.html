@@ -35,33 +35,33 @@
         </div>
 
         <style>
-    /* ตั้งค่ากล่องหลัก */
-    .flip-clock { display: flex; gap: 10px; justify-content: center; }
-    .flip-piece { position: relative; width: 60px; height: 80px; font-size: 50px; font-weight: bold; color: #ccc; background: #222; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); perspective: 400px; }
-    .card-top, .card-bottom { position: absolute; width: 100%; height: 50%; overflow: hidden; background: #222; display: flex; align-items: center; justify-content: center; }
-    .card-top { top: 0; border-radius: 8px 8px 0 0; border-bottom: 1px solid #000; }
-    .card-bottom { bottom: 0; border-radius: 0 0 8px 8px; color: #fff; background: #393939; align-items: flex-start; }
-    
-    /* ส่วนแผ่นที่จะพลิก */
-    .flip-card { position: absolute; top: 0; width: 100%; height: 50%; background: #222; transform-origin: bottom; transform-style: preserve-3d; transition: transform 0.6s; z-index: 5; }
-    .flipping { animation: flip 0.6s ease-in-out; }
-    @keyframes flip { 0% { transform: rotateX(0deg); } 100% { transform: rotateX(-180deg); } }
+    .flip-wrapper { display: flex; gap: 8px; justify-content: center; }
+    .flip-unit { display: flex; flex-direction: column; align-items: center; }
+    .flip-card { 
+        width: 50px; height: 70px; background: #1f2937; color: white;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 35px; font-weight: bold; border-radius: 6px;
+        position: relative; box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        transition: transform 0.5s ease-in-out;
+    }
+    /* แอนิเมชันพลิกง่ายๆ */
+    .is-flipping { transform: rotateX(180deg); }
 </style>
 
 <div class="px-4 mt-5 flex flex-col items-center relative z-20">
     <span class="text-xs font-bold text-gray-500 mb-3 tracking-wide">เหลือเวลาอีก</span>
-    <div class="flip-clock">
-        <div class="flex flex-col items-center">
-            <div class="flip-piece" id="box-h"><div class="card-top" id="h-top">00</div><div class="card-bottom" id="h-bottom">00</div><div class="flip-card" id="h-flip"></div></div>
-            <span class="text-[10px] text-gray-500 mt-1">ชม.</span>
+    <div class="flip-wrapper">
+        <div class="flip-unit">
+            <div class="flip-card" id="h-card">00</div>
+            <span class="text-[10px] text-gray-500 mt-2 font-bold">ชม.</span>
         </div>
-        <div class="flex flex-col items-center">
-            <div class="flip-piece" id="box-m"><div class="card-top" id="m-top">00</div><div class="card-bottom" id="m-bottom">00</div><div class="flip-card" id="m-flip">00</div></div>
-            <span class="text-[10px] text-gray-500 mt-1">นาที</span>
+        <div class="flip-unit">
+            <div class="flip-card" id="m-card">00</div>
+            <span class="text-[10px] text-gray-500 mt-2 font-bold">นาที</span>
         </div>
-        <div class="flex flex-col items-center">
-            <div class="flip-piece" id="box-s"><div class="card-top" id="s-top">00</div><div class="card-bottom" id="s-bottom">00</div><div class="flip-card" id="s-flip">00</div></div>
-            <span class="text-[10px] text-gray-500 mt-1">วินาที</span>
+        <div class="flip-unit">
+            <div class="flip-card" id="s-card">00</div>
+            <span class="text-[10px] text-gray-500 mt-2 font-bold">วินาที</span>
         </div>
     </div>
 </div>
@@ -150,20 +150,15 @@
 
    function startCountdown() {
     const updateFlip = (id, newVal) => {
-        const top = document.getElementById(`${id}-top`);
-        const bottom = document.getElementById(`${id}-bottom`);
-        const flip = document.getElementById(`${id}-flip`);
-        
-        if (top.innerText !== newVal) {
-            flip.innerText = top.innerText; // เลขเดิมที่กำลังจะพลิก
-            top.innerText = newVal; // เลขใหม่โผล่ที่ด้านบน
-            flip.classList.add('flipping');
+        const el = document.getElementById(`${id}-card`);
+        if (el.innerText !== newVal) {
+            // สั่งพลิก
+            el.classList.add('is-flipping');
             
             setTimeout(() => {
-                bottom.innerText = newVal; // เลขล่างอัปเดตหลังพลิกเสร็จ
-                flip.classList.remove('flipping');
-                flip.innerText = newVal;
-            }, 600);
+                el.innerText = newVal;
+                el.classList.remove('is-flipping');
+            }, 250); // พลิกครึ่งทางแล้วเปลี่ยนเลข
         }
     };
 
