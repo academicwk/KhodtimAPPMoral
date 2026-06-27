@@ -34,28 +34,38 @@
             </div>
         </div>
 
+        <style>
+            .flip-container { perspective: 400px; }
+            .flip-animate { animation: flipEffect 0.6s ease-in-out; }
+            @keyframes flipEffect {
+                0% { transform: rotateX(0deg); filter: brightness(1); }
+                50% { transform: rotateX(-90deg); filter: brightness(0.3); }
+                100% { transform: rotateX(0deg); filter: brightness(1); }
+            }
+        </style>
+
         <div class="px-4 mt-5 flex flex-col items-center relative z-20">
             <span class="text-xs font-bold text-gray-500 mb-2 tracking-wide">เหลือเวลาอีก</span>
             <div class="flex space-x-2 items-center">
                 <div class="flex flex-col items-center">
-                    <div class="bg-gray-900 text-white text-3xl font-mono font-bold p-3 rounded-xl shadow-lg border-b-4 border-gray-950 relative overflow-hidden min-w-[4rem] text-center">
-                        <span id="cd-hours" class="relative z-10 drop-shadow-md">00</span>
+                    <div class="flip-container bg-gray-900 text-white text-3xl font-mono font-bold p-3 rounded-xl shadow-lg border-b-4 border-gray-950 relative min-w-[4rem] text-center" id="box-hours">
+                        <span id="cd-hours" class="relative z-10 drop-shadow-md block">00</span>
                         <div class="absolute top-1/2 left-0 w-full h-[2px] bg-black opacity-80 z-20 shadow-sm"></div>
                     </div>
                     <span class="text-[10px] text-gray-500 mt-1 font-bold">ชั่วโมง</span>
                 </div>
                 <span class="text-2xl font-bold text-gray-400 self-start mt-2">:</span>
                 <div class="flex flex-col items-center">
-                    <div class="bg-gray-900 text-white text-3xl font-mono font-bold p-3 rounded-xl shadow-lg border-b-4 border-gray-950 relative overflow-hidden min-w-[3.5rem] text-center">
-                        <span id="cd-mins" class="relative z-10 drop-shadow-md">00</span>
+                    <div class="flip-container bg-gray-900 text-white text-3xl font-mono font-bold p-3 rounded-xl shadow-lg border-b-4 border-gray-950 relative min-w-[3.5rem] text-center" id="box-mins">
+                        <span id="cd-mins" class="relative z-10 drop-shadow-md block">00</span>
                         <div class="absolute top-1/2 left-0 w-full h-[2px] bg-black opacity-80 z-20 shadow-sm"></div>
                     </div>
                     <span class="text-[10px] text-gray-500 mt-1 font-bold">นาที</span>
                 </div>
                 <span class="text-2xl font-bold text-gray-400 self-start mt-2">:</span>
                 <div class="flex flex-col items-center">
-                    <div class="bg-gray-900 text-white text-3xl font-mono font-bold p-3 rounded-xl shadow-lg border-b-4 border-gray-950 relative overflow-hidden min-w-[3.5rem] text-center">
-                        <span id="cd-secs" class="relative z-10 drop-shadow-md">00</span>
+                    <div class="flip-container bg-gray-900 text-white text-3xl font-mono font-bold p-3 rounded-xl shadow-lg border-b-4 border-gray-950 relative min-w-[3.5rem] text-center" id="box-secs">
+                        <span id="cd-secs" class="relative z-10 drop-shadow-md block">00</span>
                         <div class="absolute top-1/2 left-0 w-full h-[2px] bg-black opacity-80 z-20 shadow-sm"></div>
                     </div>
                     <span class="text-[10px] text-gray-500 mt-1 font-bold">วินาที</span>
@@ -147,32 +157,46 @@
         });
 
         function startCountdown() {
+            // ฟังก์ชันสั่งพลิกกล่องพร้อมเปลี่ยนตัวเลข
+            const updateFlip = (id, newVal) => {
+                const el = document.getElementById(id);
+                if (el.innerText !== newVal) {
+                    const box = document.getElementById('box-' + id.split('-')[1]);
+                    // รีเซ็ตแอนิเมชันให้เริ่มใหม่
+                    box.classList.remove('flip-animate');
+                    void box.offsetWidth; 
+                    box.classList.add('flip-animate');
+                    
+                    // เปลี่ยนตัวเลขตอนที่กล่องพับลงไป 90 องศาพอดี (ครึ่งทางของ 0.6 วิ)
+                    setTimeout(() => {
+                        el.innerText = newVal;
+                    }, 300); 
+                }
+            };
+
             const updateTimer = () => {
                 const now = new Date();
-                // หาวันที่ 1 ของเดือนถัดไป เวลา 00:00:00
                 const target = new Date(now.getFullYear(), now.getMonth() + 1, 1, 0, 0, 0);
                 const diff = target - now;
 
                 if (diff <= 0) {
-                    document.getElementById('cd-hours').innerText = "00";
-                    document.getElementById('cd-mins').innerText = "00";
-                    document.getElementById('cd-secs').innerText = "00";
+                    updateFlip('cd-hours', "00");
+                    updateFlip('cd-mins', "00");
+                    updateFlip('cd-secs', "00");
                     return;
                 }
 
-                // คำนวณเวลาที่เหลือ
                 const h = Math.floor(diff / (1000 * 60 * 60));
                 const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
                 const s = Math.floor((diff % (1000 * 60)) / 1000);
 
-                // นำค่าไปแสดงผล (ใช้ padStart เติมเลข 0 ด้านหน้าถ้าเป็นเลขหลักเดียว)
-                document.getElementById('cd-hours').innerText = h.toString().padStart(2, '0');
-                document.getElementById('cd-mins').innerText = m.toString().padStart(2, '0');
-                document.getElementById('cd-secs').innerText = s.toString().padStart(2, '0');
+                updateFlip('cd-hours', h.toString().padStart(2, '0'));
+                updateFlip('cd-mins', m.toString().padStart(2, '0'));
+                updateFlip('cd-secs', s.toString().padStart(2, '0'));
             };
             
-            updateTimer(); // รันทันที 1 ครั้งไม่ต้องรอดีเลย์
-            setInterval(updateTimer, 1000); // สั่งให้อัปเดตทุกๆ 1 วินาที
+            updateTimer(); 
+            setInterval(updateTimer, 1000);
         }
 
         function fetchStudents() {
