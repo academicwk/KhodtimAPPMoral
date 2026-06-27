@@ -51,7 +51,7 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="stat-card flex flex-col justify-center items-center text-center">
                 <h2 class="text-sm font-bold text-gray-500 uppercase mb-2">ความคืบหน้าการประเมิน</h2>
-                <div class="text-6xl font-black text-blue-600 mb-2" id="overallPercent">0%</div>
+                <div class="text-6xl font-black text-blue-600 mb-2" id="overallPercent">0.00%</div>
                 <div class="text-gray-600 font-medium text-sm">
                     ประเมินแล้ว <span id="overallRecorded" class="font-bold text-gray-900 text-lg">0</span> จาก <span id="overallTotal" class="font-bold text-gray-900 text-lg">0</span> คน
                 </div>
@@ -134,13 +134,16 @@
         }
 
         function renderOverall(data) {
-            const percent = data.totalStudents > 0 ? Math.round((data.recordedTotal / data.totalStudents) * 100) : 0;
+            const total = data.totalStudents || 0;
+            const recorded = data.recordedTotal || 0;
+            const percent = total > 0 ? (Math.floor((recorded / total) * 100 * 100) / 100).toFixed(2) : "0.00";
+            
             document.getElementById('overallPercent').innerText = percent + "%";
-            document.getElementById('overallRecorded').innerText = data.recordedTotal;
-            document.getElementById('overallTotal').innerText = data.totalStudents;
+            document.getElementById('overallRecorded').innerText = recorded;
+            document.getElementById('overallTotal').innerText = total;
             document.getElementById('overallProgressBar').style.width = percent + "%";
 
-            const stats = data.overallStatus;
+            const stats = data.overallStatus || {};
             const dataset = [stats["ดี"] || 0, stats["ปกติ"] || 0, stats["ชั่ว"] || 0];
             
             const ctx = document.getElementById('overallPieChart').getContext('2d');
@@ -155,7 +158,7 @@
                 options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, cutout: '65%' }
             });
 
-            const calcP = (val) => data.recordedTotal > 0 ? Math.round((val/data.recordedTotal)*100) : 0;
+            const calcP = (val) => data.recordedTotal > 0 ? (Math.floor((val / data.recordedTotal) * 100 * 100) / 100).toFixed(2) : "0.00";
             document.getElementById('pieLegends').innerHTML = `
                 <div class="flex items-center"><div class="w-3 h-3 bg-green-600 rounded-full mr-1"></div>ดี: ${dataset[0]} (${calcP(dataset[0])}%)</div>
                 <div class="flex items-center"><div class="w-3 h-3 bg-blue-600 rounded-full mr-1"></div>ปกติ: ${dataset[1]} (${calcP(dataset[1])}%)</div>
@@ -164,10 +167,11 @@
         }
 
         function renderRoomTable(roomStats) {
+            const safeRoomStats = roomStats || {};
             const tbody = document.getElementById('roomTableBody');
             tbody.innerHTML = '';
             
-            const sortedRooms = Object.keys(roomStats).sort((a, b) => {
+            const sortedRooms = Object.keys(safeRoomStats).sort((a, b) => {
                 const order = { 'อ': 1, 'ป': 2, 'ม': 3 };
                 const aLevel = order[a.charAt(0)] || 99;
                 const bLevel = order[b.charAt(0)] || 99;
@@ -176,9 +180,9 @@
             });
 
             sortedRooms.forEach(room => {
-                const stat = roomStats[room];
-                const percent = stat.total > 0 ? Math.round((stat.recorded / stat.total) * 100) : 0;
-                const status = stat.status;
+                const stat = safeRoomStats[room] || { total: 0, recorded: 0, status: {} };
+                const percent = stat.total > 0 ? (Math.floor((stat.recorded / stat.total) * 100 * 100) / 100).toFixed(2) : "0.00";
+                const status = stat.status || {};
 
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
@@ -186,7 +190,7 @@
                     <td class="px-4 py-3 text-center">
                         <div class="flex items-center justify-center gap-2" title="${stat.recorded} / ${stat.total} คน">
                             <div class="w-16 bg-gray-200 rounded-full h-2 overflow-hidden"><div class="bg-blue-500 h-full" style="width: ${percent}%"></div></div>
-                            <span class="text-xs font-bold ${percent === 100 ? 'text-green-600' : 'text-gray-500'}">${percent}%</span>
+                            <span class="text-xs font-bold ${parseFloat(percent) === 100.00 ? 'text-green-600' : 'text-gray-500'}">${percent}%</span>
                         </div>
                     </td>
                     <td class="px-4 py-3 text-center font-bold text-green-600">${status["ดี"] > 0 ? status["ดี"] : '-'}</td>
