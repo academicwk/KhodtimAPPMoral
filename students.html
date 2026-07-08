@@ -72,40 +72,16 @@
             </div>
         </div> 
         
-        <div id="adminPanel" class="hidden px-4 mt-3 space-y-3">
+        <div id="adminPanel" class="hidden px-4 mt-3">
             <div class="bg-purple-100 border border-purple-300 p-3 rounded-xl shadow-sm flex justify-between items-center">
                 <div>
-                    <p class="text-sm font-bold text-purple-800"><i class="fa-solid fa-unlock-keyhole"></i> เปิดระบบกรณีพิเศษ (เดือนปัจจุบัน)</p>
+                    <p class="text-sm font-bold text-purple-800"><i class="fa-solid fa-unlock-keyhole"></i> เปิดระบบกรณีพิเศษ</p>
                     <p class="text-[10px] text-purple-600">อนุญาตให้ทุกคนบันทึกข้อมูลนอกเวลาได้</p>
                 </div>
                 <label class="relative inline-flex items-center cursor-pointer">
                     <input type="checkbox" id="overrideToggle" class="sr-only peer" onchange="handleToggleOverride()">
                     <div class="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
                 </label>
-            </div>
-
-            <div class="bg-indigo-100 border border-indigo-300 p-4 rounded-xl shadow-sm">
-                <p class="text-sm font-bold text-indigo-800 mb-2"><i class="fa-solid fa-clock-rotate-left"></i> เปิดระบบย้อนหลังชั่วคราว</p>
-                <div class="space-y-2">
-                    <div>
-                        <label class="block text-[11px] font-bold text-indigo-700 mb-1">1. เลือกเดือนย้อนหลัง</label>
-                        <select id="adminRetroMonth" class="w-full px-2 py-1.5 rounded-lg border text-xs bg-white focus:outline-none">
-                            <option value="มกราคม">มกราคม</option> <option value="กุมภาพันธ์">กุมภาพันธ์</option>
-                            <option value="มีนาคม">มีนาคม</option> <option value="เมษายน">เมษายน</option>
-                            <option value="พฤษภาคม">พฤษภาคม</option> <option value="มิถุนายน">มิถุนายน</option>
-                            <option value="กรกฎาคม">กรกฎาคม</option> <option value="สิงหาคม">สิงหาคม</option>
-                            <option value="กันยายน">กันยายน</option> <option value="ตุลาคม">ตุลาคม</option>
-                            <option value="พฤศจิกายน">พฤศจิกายน</option> <option value="ธันวาคม">ธันวาคม</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-[11px] font-bold text-indigo-700 mb-1">2. ระบุห้องเรียนผู้ใช้ (คั่นด้วยจุลภาค `,` สำหรับหลายห้อง)</label>
-                        <input type="text" id="adminRetroRooms" placeholder="เช่น อ.1/1, ป.3/2, ม.1/1" class="w-full px-2 py-1.5 rounded-lg border text-xs bg-white focus:outline-none">
-                    </div>
-                    <button onclick="handleSaveRetroactive()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 rounded-lg text-xs shadow-sm transition flex items-center justify-center gap-1 mt-2">
-                        <i class="fa-solid fa-paper-plane"></i> อนุมัติสิทธิ์ย้อนหลังชั่วคราว
-                    </button>
-                </div>
             </div>
         </div>
 
@@ -514,54 +490,6 @@
                 toggle.checked = !state;
             } finally {
                 toggle.disabled = false;
-            }
-        }
-
-
-        // คัดลอกฟังก์ชันนี้ไปวางต่อท้ายฟังก์ชัน handleToggleOverride() ก่อนปิดแท็ก </script>
-
-        async function handleSaveRetroactive() {
-            const retroMonth = document.getElementById('adminRetroMonth').value;
-            const rawRooms = document.getElementById('adminRetroRooms').value.trim();
-
-            if (!rawRooms) {
-                Swal.fire('แจ้งเตือน', 'กรุณาระบุห้องเรียนที่ต้องการเปิดระบบย้อนหลัง', 'warning');
-                return;
-            }
-
-            // แยกข้อความห้องเรียนด้วยคอมมา และตัดช่องว่างออก
-            const roomsArray = rawRooms.split(',').map(r => r.trim()).filter(r => r.length > 0);
-
-            Swal.fire({ title: 'กำลังบันทึกสิทธิ์...', allowOutsideClick: false, didOpen: () => { Swal.showLoading() } });
-
-            try {
-                const res = await fetch(GAS_WEB_APP_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        action: "setRetroactiveAccess",
-                        teacherName: globalTeacherName,
-                        term: globalTerm,
-                        month: retroMonth,
-                        rooms: roomsArray
-                    }),
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' }
-                });
-                const result = await res.json();
-
-                if (result.status === 'success') {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'อนุมัติสิทธิ์สำเร็จ',
-                        text: `เปิดระบบเดือน${retroMonth} ให้ห้องเรียนที่เลือกเรียบร้อยแล้ว`,
-                        confirmButtonText: 'ตกลง'
-                    }).then(() => {
-                        document.getElementById('adminRetroRooms').value = ''; // เคลียร์ช่องกรอกข้อมูล
-                    });
-                } else {
-                    Swal.fire('ข้อผิดพลาด', result.message, 'error');
-                }
-            } catch (e) {
-                Swal.fire('Error', 'ไม่สามารถเชื่อมต่อฐานข้อมูลได้', 'error');
             }
         }
     </script>
