@@ -3,25 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>ระบบประเมินคุณธรรม</title>
+    <title>รายชื่อนักเรียน - ระบบดัชนีมวลกาย</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <style>
         body { font-family: 'Sarabun', sans-serif; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+        .input-mini { text-align: center; font-weight: bold; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 0.5rem; width: 100%; outline: none; transition: all 0.2s; }
+        .input-mini:focus:not(:read-only) { border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2); }
+        .input-mini:read-only { background-color: #f3f4f6; color: #6b7280; cursor: not-allowed; border-color: #e5e7eb; }
         .modal-overlay { background-color: rgba(0, 0, 0, 0.5); backdrop-filter: blur(2px); }
         .modal-content { transition: transform 0.3s ease-out; transform: translateY(100%); }
         .modal-open .modal-content { transform: translateY(0); }
+
+        /* แอนิเมชันป้ายนับถอยหลังแบบพับ */
+        .flip-wrapper { display: flex; gap: 8px; justify-content: center; }
+        .flip-unit { display: flex; flex-direction: column; align-items: center; }
+        .flip-card { 
+            width: 50px; height: 70px; background: #1f2937; color: white;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 35px; font-weight: bold; border-radius: 6px;
+            position: relative; box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            transition: transform 0.5s ease-in-out;
+        }
+        .is-flipping { transform: rotateX(180deg); }
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen">
 
     <div class="max-w-md mx-auto bg-gray-50 min-h-screen shadow-md relative pb-10">
-        <div class="bg-blue-700 text-white p-4 rounded-b-3xl shadow-lg relative z-10">
+        <div class="bg-blue-600 text-white p-4 rounded-b-3xl shadow-lg relative z-10">
             <div class="flex justify-between items-start mb-2">
                 <div class="flex items-center space-x-3">
-                    <img src="https://img2.pic.in.th/4d3a830f3eb506411.png" alt="Logo" class="w-10 h-10 bg-white rounded-full p-1 shadow-sm object-cover">
+                    <img src="https://img2.pic.in.th/4d3a830f3eb506411.png" class="w-10 h-10 bg-white rounded-full p-1 shadow">
                     <div>
                         <p class="text-sm text-blue-200" id="record-period">ประจำเดือน...</p>
                         <p id="list-teacher-profile" class="font-bold text-lg leading-tight">กำลังตรวจสอบข้อมูล...</p>
@@ -30,69 +45,64 @@
                 <button onclick="handleLogout()" class="text-[10px] font-bold bg-white text-blue-700 px-3 py-1.5 rounded-full shadow hover:bg-blue-50 transition">ออกจากระบบ</button>
             </div>
             <div class="mt-4 bg-white bg-opacity-20 p-3 rounded-xl border border-white border-opacity-30 backdrop-blur-sm text-center">
-                <h2 class="text-lg font-bold">ประเมินคุณธรรม</h2>
+                <h2 class="text-lg font-bold">บันทึกข้อมูลน้ำหนัก/ส่วนสูง</h2>
             </div>
         </div>
 
-        <style>
-    .flip-wrapper { display: flex; gap: 8px; justify-content: center; }
-    .flip-unit { display: flex; flex-direction: column; align-items: center; }
-    .flip-card { 
-        width: 50px; height: 70px; background: #1f2937; color: white;
-        display: flex; align-items: center; justify-content: center;
-        font-size: 35px; font-weight: bold; border-radius: 6px;
-        position: relative; box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-        transition: transform 0.5s ease-in-out;
-    }
-    /* แอนิเมชันพลิกง่ายๆ */
-    .is-flipping { transform: rotateX(180deg); }
-</style>
+        <div id="countdownContainer" class="px-4 mt-5 flex flex-col items-center relative z-20 hidden">
+            <span class="text-xs font-bold text-gray-500 mb-3 tracking-wide">เหลือเวลาบันทึกข้อมูลอีก</span>
+            <div class="flip-wrapper">
+                <div class="flip-unit"><div class="flip-card" id="d-card">00</div><span class="text-[10px] text-gray-500 mt-2 font-bold">วัน</span></div>
+                <div class="flip-unit"><div class="flip-card" id="h-card">00</div><span class="text-[10px] text-gray-500 mt-2 font-bold">ชม.</span></div>
+                <div class="flip-unit"><div class="flip-card" id="m-card">00</div><span class="text-[10px] text-gray-500 mt-2 font-bold">นาที</span></div>
+                <div class="flip-unit"><div class="flip-card" id="s-card">00</div><span class="text-[10px] text-gray-500 mt-2 font-bold">วินาที</span></div>
+            </div>
+        </div>
 
-<div class="px-4 mt-5 flex flex-col items-center relative z-20">
-    <span class="text-xs font-bold text-gray-500 mb-3 tracking-wide">เหลือเวลาอีก</span>
-    <div class="flip-wrapper">
-        <div class="flip-unit">
-            <div class="flip-card" id="h-card">00</div>
-            <span class="text-[10px] text-gray-500 mt-2 font-bold">ชม.</span>
-        </div>
-        <div class="flip-unit">
-            <div class="flip-card" id="m-card">00</div>
-            <span class="text-[10px] text-gray-500 mt-2 font-bold">นาที</span>
-        </div>
-        <div class="flip-unit">
-            <div class="flip-card" id="s-card">00</div>
-            <span class="text-[10px] text-gray-500 mt-2 font-bold">วินาที</span>
-        </div>
-    </div>
-</div>
         <div id="readonlyBanner" class="hidden px-4 mt-3">
             <div class="bg-amber-100 border border-amber-300 text-amber-800 p-3 rounded-xl shadow-sm text-center">
                 <p class="text-sm font-bold"><i class="fa-solid fa-lock text-amber-600"></i> โหมดอ่านอย่างเดียว</p>
-                <p class="text-xs mt-1">ระบบอยู่นอกช่วงเวลาเปิดรับข้อมูล</p>
+                <p class="text-xs mt-1" id="readonlyText">ระบบอยู่นอกช่วงเวลาเปิดรับข้อมูล</p>
             </div>
         </div> 
-        
-        <div id="adminPanel" class="hidden px-4 mt-3">
+
+        <div id="adminPanel" class="hidden px-4 mt-3 space-y-2">
             <div class="bg-purple-100 border border-purple-300 p-3 rounded-xl shadow-sm flex justify-between items-center">
                 <div>
                     <p class="text-sm font-bold text-purple-800"><i class="fa-solid fa-unlock-keyhole"></i> เปิดระบบกรณีพิเศษ</p>
                     <p class="text-[10px] text-purple-600">อนุญาตให้ทุกคนบันทึกข้อมูลนอกเวลาได้</p>
                 </div>
                 <label class="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" id="overrideToggle" class="sr-only peer" onchange="handleToggleOverride()">
+                    <input type="checkbox" id="overrideToggle" class="sr-only peer" onchange="handleSaveAdminConfig()">
                     <div class="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
                 </label>
             </div>
+            
+            <div class="bg-purple-50 border border-purple-200 p-3 rounded-xl shadow-sm">
+                <p class="text-sm font-bold text-purple-800 mb-2"><i class="fa-solid fa-calendar-days"></i> กำหนดวันเปิด-ปิดระบบ (ประจำเดือน)</p>
+                <div class="flex items-center gap-2">
+                    <div class="flex-1">
+                        <label class="text-[10px] text-purple-600 font-bold block text-center mb-1">วันที่เริ่ม</label>
+                        <input type="number" id="sysStartDay" min="1" max="31" class="w-full text-center rounded-lg border border-purple-200 text-sm py-1.5 font-bold text-purple-700 outline-none focus:ring-2 focus:ring-purple-400">
+                    </div>
+                    <span class="text-purple-400 font-bold mt-4">-</span>
+                    <div class="flex-1">
+                        <label class="text-[10px] text-purple-600 font-bold block text-center mb-1">วันที่สิ้นสุด</label>
+                        <input type="number" id="sysEndDay" min="1" max="31" class="w-full text-center rounded-lg border border-purple-200 text-sm py-1.5 font-bold text-purple-700 outline-none focus:ring-2 focus:ring-purple-400">
+                    </div>
+                    <button onclick="handleSaveAdminConfig()" class="mt-4 bg-purple-600 hover:bg-purple-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow transition flex items-center justify-center"><i class="fa-solid fa-save"></i> บันทึก</button>
+                </div>
+            </div>
         </div>
 
-        <div class="px-4 mt-3 relative z-20">
+        <div class="px-4 mt-4 relative z-20">
             <div class="bg-white p-4 rounded-2xl shadow border border-gray-100 text-center">
                 <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wide">ความคืบหน้าการบันทึกข้อมูล</p>
                 <div class="my-1 flex items-baseline justify-center space-x-2">
                     <span id="progressPercent" class="text-5xl font-black text-blue-600 tracking-tighter">0.00%</span>
                 </div>
                 <p class="text-[11px] font-medium text-gray-500 mb-3 border-b border-gray-50 pb-3">
-                    ประเมินแล้ว <span id="recordedCount" class="font-bold text-gray-800 text-sm">0</span> จาก <span id="totalCount" class="font-bold text-gray-800 text-sm">0</span> คน
+                    บันทึกแล้ว <span id="recordedCount" class="font-bold text-gray-800 text-sm">0</span> จาก <span id="totalCount" class="font-bold text-gray-800 text-sm">0</span> คน
                 </p>
                 <div class="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
                     <div id="progressBar" class="bg-gradient-to-r from-blue-400 to-blue-600 h-full rounded-full transition-all duration-1000 ease-out" style="width: 0%"></div>
@@ -100,21 +110,14 @@
             </div>
         </div>
 
-        <div id="studentListContainer" class="px-4 mt-4 space-y-4 pb-4"></div>
-
-        <div id="saveAllContainer" class="px-4 mt-2 mb-8 hidden">
-            <button id="btnSaveAll" onclick="saveAllData()" class="w-full bg-blue-600 hover:bg-blue-700 text-white text-base font-bold py-4 rounded-xl shadow-lg transition flex items-center justify-center gap-2">
-                <i class="fa-solid fa-save text-xl"></i> บันทึกผลการประเมินทั้งหมด
-            </button>
-        </div>
-
+        <div id="studentListContainer" class="px-4 mt-4 space-y-4"></div>
     </div>
 
     <div id="historyModal" class="fixed inset-0 modal-overlay hidden z-50 flex flex-col justify-end max-w-md mx-auto">
-        <div class="modal-content bg-white w-full rounded-t-3xl shadow-2xl h-[60vh] flex flex-col">
+        <div class="modal-content bg-white w-full rounded-t-3xl shadow-2xl h-[75vh] flex flex-col">
             <div class="p-4 border-b flex justify-between items-center bg-gray-50 rounded-t-3xl">
                 <div>
-                    <h3 class="font-bold text-gray-800 text-lg">ประวัติผลการประเมิน</h3>
+                    <h3 class="font-bold text-gray-800 text-lg">ประวัติข้อมูล</h3>
                     <p id="modalStudentName" class="text-sm text-blue-600 font-bold">-</p>
                 </div>
                 <button onclick="closeHistoryModal()" class="w-8 h-8 bg-gray-200 text-gray-600 rounded-full flex items-center justify-center font-bold hover:bg-gray-300"><i class="fa-solid fa-times"></i></button>
@@ -124,13 +127,16 @@
     </div>
 
     <script>
-        const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwV207I1xtqZV33hfRQorqKmsBpD1vP1g7AJOJJpyj61OqXFiou7-Oz3FePQXlQLpCOYA/exec";
+        const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzTh56DQWZ5J2pcrUFFgv9qF_vYISHAooCny1JADySXvtZv_AZ2NXyiJ82eIv3rncTcZQ/exec";
         
         let globalTeacherRoom = "";
         let globalTeacherName = "";
         let globalTerm = "";
         let globalMonth = "";
         let isReadOnly = false;
+        let globalThaiRef = null; 
+        
+        let countdownInterval;
 
         document.addEventListener("DOMContentLoaded", () => {
             const urlParams = new URLSearchParams(window.location.search);
@@ -144,38 +150,42 @@
             document.getElementById('list-teacher-profile').innerText = `${globalTeacherName} (ห้อง ${globalTeacherRoom})`;
             document.getElementById('record-period').innerText = `เดือน${globalMonth} (ภาคเรียน ${globalTerm})`;
 
-            startCountdown();
             fetchStudents();
         });
 
-   function startCountdown() {
-    const updateFlip = (id, newVal) => {
-        const el = document.getElementById(`${id}-card`);
-        if (el.innerText !== newVal) {
-            // สั่งพลิก
-            el.classList.add('is-flipping');
+        // ฟังก์ชันนับเวลาถอยหลัง (นับไปจนถึงวันที่สิ้นสุดของเดือน)
+        function startCountdown(endDay) {
+            if(countdownInterval) clearInterval(countdownInterval);
+            document.getElementById('countdownContainer').classList.remove('hidden');
             
-            setTimeout(() => {
-                el.innerText = newVal;
-                el.classList.remove('is-flipping');
-            }, 250); // พลิกครึ่งทางแล้วเปลี่ยนเลข
+            const updateFlip = (id, newVal) => {
+                const el = document.getElementById(`${id}-card`);
+                if (el.innerText !== newVal) {
+                    el.classList.add('is-flipping');
+                    setTimeout(() => {
+                        el.innerText = newVal;
+                        el.classList.remove('is-flipping');
+                    }, 250); 
+                }
+            };
+
+            countdownInterval = setInterval(() => {
+                const now = new Date();
+                // ตั้งเป้าเวลาเป็นวันที่ endDay เวลา 23:59:59 ของเดือนปัจจุบัน
+                let target = new Date(now.getFullYear(), now.getMonth(), endDay, 23, 59, 59);
+                
+                let diff = target - now;
+                if (diff < 0) { diff = 0; } // หมดเวลา
+
+                const d = Math.floor(diff / (1000 * 60 * 60 * 24)).toString().padStart(2, '0');
+                const h = Math.floor((diff / (1000 * 60 * 60)) % 24).toString().padStart(2, '0');
+                const m = Math.floor((diff / 1000 / 60) % 60).toString().padStart(2, '0');
+                const s = Math.floor((diff / 1000) % 60).toString().padStart(2, '0');
+
+                updateFlip('d', d); updateFlip('h', h); updateFlip('m', m); updateFlip('s', s);
+            }, 1000);
         }
-    };
 
-    setInterval(() => {
-        const now = new Date();
-        const target = new Date(now.getFullYear(), now.getMonth() + 1, 1, 0, 0, 0);
-        const diff = Math.max(0, target - now);
-
-        const h = Math.floor(diff / (1000 * 60 * 60)).toString().padStart(2, '0');
-        const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60)).toString().padStart(2, '0');
-        const s = Math.floor((diff % (1000 * 60)) / 1000).toString().padStart(2, '0');
-
-        updateFlip('h', h);
-        updateFlip('m', m);
-        updateFlip('s', s);
-    }, 1000);
-}
         function fetchStudents() {
             const container = document.getElementById('studentListContainer');
             container.innerHTML = '<div class="text-center py-10 text-gray-400 font-bold"><i class="fa-solid fa-spinner fa-spin text-3xl mb-2"></i><br>กำลังโหลดข้อมูล...</div>';
@@ -188,22 +198,31 @@
             .then(res => res.json())
             .then(result => {
                 if (result.status === 'success') { 
+                    globalThaiRef = result.thaiRef; 
+                    
+                    // แสดงแผงควบคุมหากเป็นแอดมิน
                     if (globalTeacherName === "นายพีระศิน ไชยศร" || globalTeacherName === "พีระศิน ไชยศร") {
                         document.getElementById('adminPanel').classList.remove('hidden');
                         document.getElementById('overrideToggle').checked = result.override;
+                        document.getElementById('sysStartDay').value = result.startDay;
+                        document.getElementById('sysEndDay').value = result.endDay;
                     }
 
+                    // ล็อกเวลาการกรอกด้วยวันที่ ที่ตั้งค่าไว้จากระบบ
                     const today = new Date().getDate();
-                    if (today < 16 && !result.override) {
-                        isReadOnly = true;
+                    if ((today < result.startDay || today > result.endDay) && !result.override) {
+                        isReadOnly = true; 
                         document.getElementById('readonlyBanner').classList.remove('hidden');
+                        document.getElementById('readonlyText').innerText = `ระบบเปิดให้บันทึกข้อมูลเฉพาะวันที่ ${result.startDay} ถึง ${result.endDay} ของเดือนเท่านั้น`;
+                        document.getElementById('countdownContainer').classList.add('hidden'); // ซ่อนเวลานับถอยหลัง
                     } else {
-                        isReadOnly = false;
+                        isReadOnly = false; 
                         document.getElementById('readonlyBanner').classList.add('hidden');
+                        startCountdown(result.endDay); // เริ่มนับถอยหลังไปหาวันปิดระบบ
                     }
 
                     renderStudentList(result.data); 
-                }                
+                } 
                 else { Swal.fire('ข้อผิดพลาด', result.message, 'error'); }
             }).catch(err => { container.innerHTML = `<div class="bg-red-50 text-red-500 p-4 rounded-xl text-center text-sm font-bold">เชื่อมต่อล้มเหลว</div>`; });
         }
@@ -211,11 +230,11 @@
         function updateProgress(students) {
             const total = students.length;
             const recorded = students.filter(s => s.isRecorded).length; 
-            const percent = total > 0 ? (Math.floor((recorded / total) * 100 * 100) / 100).toFixed(2) : "0.00";
+            const percent = total > 0 ? ((recorded / total) * 100).toFixed(2) : "0.00";
 
             document.getElementById('totalCount').innerText = total;
             document.getElementById('recordedCount').innerText = recorded;
-            document.getElementById('progressPercent').innerText = percent + "%";
+            document.getElementById('progressPercent').innerText = percent + "%"; 
             document.getElementById('progressBar').style.width = percent + "%";
         }
 
@@ -226,52 +245,34 @@
             updateProgress(students);
             
             if(!students || students.length === 0) {
-                container.innerHTML = `<div class="bg-red-50 border border-red-200 p-4 rounded-xl text-center"><p class="text-red-500 font-bold text-sm">ไม่พบรายชื่อนักเรียนห้อง ${globalTeacherRoom}</p></div>`; 
-                document.getElementById('saveAllContainer').classList.add('hidden');
-                return;
-            }
-
-            if(isReadOnly) {
-                document.getElementById('saveAllContainer').classList.add('hidden');
-            } else {
-                document.getElementById('saveAllContainer').classList.remove('hidden');
+                container.innerHTML = `<div class="bg-red-50 border border-red-200 p-4 rounded-xl text-center"><p class="text-red-500 font-bold text-sm">ไม่พบรายชื่อนักเรียนห้อง ${globalTeacherRoom}</p></div>`; return;
             }
 
             students.forEach(student => {
                 const isRec = student.isRecorded;
                 let borderClass = isRec ? "border-2 border-green-400" : "border border-gray-200";
-                let badgeHtml = isRec ? `<span class="bg-green-100 text-green-700 text-[10px] px-2 py-0.5 rounded font-bold ml-2">ประเมินแล้ว</span>` : '';
+                let badgeHtml = `<span id="badge_${student.sid}" class="${isRec ? '' : 'hidden'} bg-green-100 text-green-700 text-[10px] px-2 py-0.5 rounded font-bold ml-2">บันทึกแล้ว</span>`;
                 
-                let savedVal = student.overall_result;
-                if (!savedVal || savedVal === "รอข้อมูล") savedVal = "";
-
-                const readonlyAttr = isReadOnly ? "disabled" : "";
+                let resColor = getThaiColorClass(student.result);
+                const readonlyAttr = isReadOnly ? "readonly" : "";
+                const saveBtnClass = isReadOnly ? "hidden" : "flex";
                 const profileImg = student.photo ? student.photo : 'https://cdn-icons-png.flaticon.com/512/149/149071.png';
                 const imgBorder = isRec ? "border-green-400" : "border-gray-200";
 
-                const activeClass = "border rounded py-2.5 text-center font-bold text-white border-transparent transition-colors text-sm shadow-sm";
-                const normalClass = "border rounded py-2.5 text-center font-bold bg-gray-50 text-gray-600 border-gray-200 transition-colors text-sm hover:bg-gray-100";
-                
-                const btn3Class = savedVal === 'ดี' ? `${activeClass} bg-green-600` : normalClass;
-                const btn2Class = savedVal === 'ปกติ' ? `${activeClass} bg-blue-600` : normalClass;
-                const btn1Class = savedVal === 'ชั่ว' ? `${activeClass} bg-red-600` : normalClass;
-
                 const card = document.createElement("div");
-                card.className = `bg-white p-4 rounded-xl shadow-sm ${borderClass} relative card-student`;
+                card.className = `bg-white p-4 rounded-xl shadow-sm ${borderClass} relative`;
                 card.id = `card_${student.sid}`;
-                card.setAttribute('data-sid', student.sid);
-                card.setAttribute('data-sno', student.sno);
-                card.setAttribute('data-fullname', student.fullname);
 
                 card.innerHTML = `
-                    <div class="flex justify-between items-start pb-3 mb-3 border-b border-gray-100">
+                    <input type="hidden" id="sex_${student.sid}" value="${student.sex}">
+                    <div class="flex justify-between items-start border-b border-gray-100 pb-3 mb-3">
                         <div class="flex items-center gap-3">
                             <div class="relative">
-                                <img src="${profileImg}" alt="Profile" class="w-12 h-12 rounded-full object-cover border-2 ${imgBorder} shadow-sm" onerror="this.src='https://cdn-icons-png.flaticon.com/512/149/149071.png'">
+                                <img id="img_${student.sid}" src="${profileImg}" class="w-12 h-12 rounded-full object-cover border-2 ${imgBorder} shadow-sm" onerror="this.src='https://cdn-icons-png.flaticon.com/512/149/149071.png'">
                                 <div class="absolute -bottom-1 -right-1 bg-blue-100 text-blue-700 border border-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold shadow-sm">${student.sno}</div>
                             </div>
                             <div>
-                                <p class="font-bold text-gray-800 text-sm leading-tight">${student.fullname} <span id="badge_${student.sid}">${badgeHtml}</span></p>
+                                <p class="font-bold text-gray-800 text-sm leading-tight">${student.fullname} ${badgeHtml}</p>
                                 <p class="text-[10px] text-gray-500 mt-0.5">รหัส: ${student.sid}</p>
                             </div>
                         </div>
@@ -280,126 +281,166 @@
                         </button>
                     </div>
 
-                    <div class="grid grid-cols-3 gap-2">
-                        <button type="button" onclick="selectScore('${student.sid}', 'ดี')" id="btn_${student.sid}_3" class="${btn3Class}" ${readonlyAttr}>ดี</button>
-                        <button type="button" onclick="selectScore('${student.sid}', 'ปกติ')" id="btn_${student.sid}_2" class="${btn2Class}" ${readonlyAttr}>ปกติ</button>
-                        <button type="button" onclick="selectScore('${student.sid}', 'ชั่ว')" id="btn_${student.sid}_1" class="${btn1Class}" ${readonlyAttr}>ชั่ว</button>
+                    <div class="grid grid-cols-12 gap-2 items-end">
+                        <div class="col-span-4">
+                            <label class="block text-[10px] text-gray-500 font-bold mb-1 text-center">น้ำหนัก (กก.)</label>
+                            <input type="number" id="w_${student.sid}" value="${student.weight}" step="0.1" class="input-mini text-blue-700" placeholder="0.0" oninput="previewBMI('${student.sid}')" ${readonlyAttr}>
+                        </div>
+                        <div class="col-span-4">
+                            <label class="block text-[10px] text-gray-500 font-bold mb-1 text-center">ส่วนสูง (ซม.)</label>
+                            <input type="number" id="h_${student.sid}" value="${student.height}" step="0.1" class="input-mini text-blue-700" placeholder="0.0" oninput="previewBMI('${student.sid}')" ${readonlyAttr}>
+                        </div>
+                        <div class="col-span-4 ${saveBtnClass}">
+                            <button id="btn_${student.sid}" onclick="saveData('${student.sid}', '${student.sno}', '${student.fullname}')" class="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-2.5 rounded-lg shadow transition h-full flex flex-col items-center justify-center gap-1">
+                                <i class="fa-solid fa-save"></i> บันทึก
+                            </button>
+                        </div>
                     </div>
-                    <input type="hidden" id="val_${student.sid}" value="${savedVal}" data-original="${savedVal}">
+
+                    <div class="mt-3 bg-gray-50 rounded-lg p-2 text-center border border-gray-100 flex justify-between items-center px-4">
+                        <div class="text-xs font-bold text-gray-600">ค่า BMI: <span id="bmi_${student.sid}" class="text-sm text-gray-900">${student.bmi || '-'}</span></div>
+                        <div id="res_${student.sid}" class="text-xs font-bold ${resColor}">${student.result || 'รอข้อมูล'}</div>
+                    </div>
                 `;
                 container.appendChild(card);
             });
         }
 
-        function selectScore(sid, level) {
-            if (isReadOnly) return;
-            const levels = {'ดี': 3, 'ปกติ': 2, 'ชั่ว': 1};
-            const classes = { 3: 'bg-green-600 text-white border-green-600', 2: 'bg-blue-600 text-white border-blue-600', 1: 'bg-red-600 text-white border-red-600' };
-            
-            Object.keys(levels).forEach(lvl => {
-                const btn = document.getElementById(`btn_${sid}_${levels[lvl]}`);
-                if(btn) btn.className = "border rounded py-2.5 text-center font-bold bg-gray-50 text-gray-600 border-gray-200 transition-colors text-sm hover:bg-gray-100";
-            });
-            
-            const activeNum = levels[level];
-            const activeBtn = document.getElementById(`btn_${sid}_${activeNum}`);
-            if(activeBtn) activeBtn.className = `border rounded py-2.5 text-center font-bold text-white border-transparent transition-colors text-sm shadow-sm ${classes[activeNum]}`;
-            
-            document.getElementById(`val_${sid}`).value = level;
+        function previewBMI(sid) {
+            let w = parseFloat(document.getElementById(`w_${sid}`).value);
+            let h = parseFloat(document.getElementById(`h_${sid}`).value);
+            let sex = document.getElementById(`sex_${sid}`).value;
+            let bmiEl = document.getElementById(`bmi_${sid}`);
+            let resEl = document.getElementById(`res_${sid}`);
+
+            if (w > 0 && h > 0) {
+                let bmiNum = (w / ((h / 100) * (h / 100))).toFixed(2);
+                bmiEl.innerText = bmiNum;
+
+                let resultTxt = "ไม่อยู่ในเกณฑ์ตาราง";
+                let resColor = "text-gray-500";
+                
+                if (globalThaiRef && globalThaiRef[sex]) {
+                    let hRoundNum = Math.round(h * 2) / 2;
+                    let hStr = hRoundNum.toFixed(1); 
+                    
+                    let refLevels = globalThaiRef[sex][hStr];
+                    if (refLevels) {
+                        let matchedLevel = 3; 
+                        for(let l of refLevels) {
+                            let lvlCode = l[0], wMin = l[1], wMax = l[2];
+                            if (w >= wMin && w <= wMax) { matchedLevel = lvlCode; break; }
+                            if (lvlCode === 6 && w > wMax) { matchedLevel = 6; } 
+                            if (lvlCode === 1 && w < wMin) { matchedLevel = 1; } 
+                        }
+                        
+                        if(matchedLevel === 1) resultTxt = "ผอม";
+                        else if(matchedLevel === 2) resultTxt = "ค่อนข้างผอม";
+                        else if(matchedLevel === 3) resultTxt = "สมส่วน";
+                        else if(matchedLevel === 4) resultTxt = "ท้วม";
+                        else if(matchedLevel === 5) resultTxt = "เริ่มอ้วน";
+                        else if(matchedLevel === 6) resultTxt = "อ้วน";
+                    }
+                }
+                
+                resEl.innerText = resultTxt;
+                resEl.className = `text-xs font-bold ${getThaiColorClass(resultTxt)}`;
+            } else {
+                bmiEl.innerText = "-"; resEl.innerText = "รอข้อมูล"; resEl.className = "text-xs font-bold text-gray-500";
+            }
         }
 
-        async function saveAllData() {
-            // เก็บรายชื่อนักเรียนที่มีการเปลี่ยน/ระบุผลการประเมิน
-            let queue = [];
-            document.querySelectorAll('.card-student').forEach(card => {
-                const sid = card.getAttribute('data-sid');
-                const sno = card.getAttribute('data-sno');
-                const fullname = card.getAttribute('data-fullname');
-                const val = document.getElementById(`val_${sid}`).value;
-                const orig = document.getElementById(`val_${sid}`).getAttribute('data-original');
+        function getThaiColorClass(resTxt) {
+            if (!resTxt) return "text-gray-500";
+            if (resTxt.includes("ค่อนข้างผอม")) return "text-blue-400";
+            if (resTxt.includes("ผอม")) return "text-blue-600";
+            if (resTxt.includes("สมส่วน") || resTxt.includes("ปกติ")) return "text-green-600";
+            if (resTxt.includes("ท้วม")) return "text-amber-500";
+            if (resTxt.includes("เริ่มอ้วน")) return "text-orange-500";
+            if (resTxt.includes("อ้วน")) return "text-red-600";
+            return "text-gray-500";
+        }
+
+        async function saveData(sid, sno, fullname) {
+            const w = document.getElementById(`w_${sid}`).value;
+            const h = document.getElementById(`h_${sid}`).value;
+            const btn = document.getElementById(`btn_${sid}`);
+
+            if(!w || !h) { Swal.fire('แจ้งเตือน', 'กรุณากรอกน้ำหนักและส่วนสูงให้ครบ', 'warning'); return; }
+
+            previewBMI(sid); 
+            const bmi = document.getElementById(`bmi_${sid}`).innerText;
+            const result = document.getElementById(`res_${sid}`).innerText;
+
+            btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+
+            try {
+                const payload = { action: "saveRecord", term: globalTerm, month: globalMonth, room: globalTeacherRoom, sid: sid, sno: sno, fullname: fullname, weight: w, height: h, bmi: bmi, result: result };
+                const res = await fetch(GAS_WEB_APP_URL, { method: 'POST', body: JSON.stringify(payload), headers: { 'Content-Type': 'text/plain;charset=utf-8' } });
+                const json = await res.json();
                 
-                // ถ้าระบุผลแล้ว และข้อมูลไม่ตรงกับของเดิม (มีการประเมินใหม่/เปลี่ยนแปลง) ให้หยิบเข้าคิวบันทึก
-                if (val && val !== orig) {
-                    queue.push({ sid: sid, sno: sno, fullname: fullname, result: val });
-                }
-            });
-
-            if (queue.length === 0) {
-                Swal.fire('แจ้งเตือน', 'ไม่มีข้อมูลใหม่ที่ต้องบันทึก (หรือคุณยังไม่ได้กดประเมินเพิ่มเติม)', 'info');
-                return;
-            }
-
-            const btn = document.getElementById('btnSaveAll');
-            btn.disabled = true;
-
-            let successCount = 0;
-            let errorCount = 0;
-
-            // หน้าต่างกำลังบันทึก
-            Swal.fire({
-                title: 'กำลังบันทึกข้อมูล...',
-                html: `ดำเนินการแล้ว <b class="text-blue-600 text-lg">0</b> จาก ${queue.length} รายการ<br><span class="text-xs text-gray-500 mt-2 block">กรุณารอสักครู่...</span>`,
-                allowOutsideClick: false,
-                didOpen: () => { Swal.showLoading() }
-            });
-
-            // ส่งข้อมูลตามคิว
-            for (let i = 0; i < queue.length; i++) {
-                const s = queue[i];
-                Swal.getHtmlContainer().querySelector('b').textContent = i + 1;
-                
-                try {
-                    const payload = {
-                        action: "saveMoralRecord", term: globalTerm, month: globalMonth, room: globalTeacherRoom,
-                        sid: s.sid, sno: s.sno, fullname: s.fullname, result: s.result
-                    };
+                if (json.status === 'success') {
+                    const card = document.getElementById(`card_${sid}`);
+                    const badge = document.getElementById(`badge_${sid}`);
+                    const img = document.getElementById(`img_${sid}`);
                     
-                    const res = await fetch(GAS_WEB_APP_URL, { method: 'POST', body: JSON.stringify(payload), headers: { 'Content-Type': 'text/plain;charset=utf-8' } });
-                    const json = await res.json();
+                    card.classList.remove('border-gray-200'); card.classList.add('border-green-400', 'border-2');
+                    if (badge) badge.classList.remove('hidden');
+                    if (img) { img.classList.remove('border-gray-200'); img.classList.add('border-green-400'); }
                     
-                    if (json.status === 'success') {
-                        successCount++;
-                        
-                        // อัปเดต UI 
-                        const card = document.getElementById(`card_${s.sid}`);
-                        card.classList.remove('border-gray-200'); 
-                        card.classList.add('border-green-400', 'border-2');
-                        
-                        document.getElementById(`val_${s.sid}`).setAttribute('data-original', s.result);
-                        
-                        const badgeContainer = document.getElementById(`badge_${s.sid}`);
-                        if(badgeContainer && !badgeContainer.innerHTML.includes('ประเมินแล้ว')) {
-                            badgeContainer.innerHTML = `<span class="bg-green-100 text-green-700 text-[10px] px-2 py-0.5 rounded font-bold ml-2">ประเมินแล้ว</span>`;
-                        }
-                    } else {
-                        errorCount++;
-                    }
-                } catch (error) { 
-                    errorCount++;
+                    btn.classList.remove('bg-blue-600', 'hover:bg-blue-700', 'bg-gray-500');
+                    btn.classList.add('bg-green-500'); btn.innerHTML = '<i class="fa-solid fa-check"></i> สำเร็จ';
+                    
+                    setTimeout(() => {
+                        btn.disabled = false; btn.classList.remove('bg-green-500'); btn.classList.add('bg-blue-600', 'hover:bg-blue-700'); btn.innerHTML = '<i class="fa-solid fa-save"></i> บันทึก';
+                    }, 2000);
+                    
+                    const total = parseInt(document.getElementById('totalCount').innerText);
+                    const greenCards = document.querySelectorAll('.border-green-400').length;
+                    const newPercent = total > 0 ? ((greenCards / total) * 100).toFixed(2) : "0.00";
+                    
+                    document.getElementById('recordedCount').innerText = greenCards;
+                    document.getElementById('progressPercent').innerText = newPercent + "%"; 
+                    document.getElementById('progressBar').style.width = newPercent + "%";
+                } else {
+                    Swal.fire('ล้มเหลว', json.message, 'error'); btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-save"></i> บันทึก';
                 }
-            }
+            } catch (error) { 
+                Swal.fire('Error', 'ไม่สามารถเชื่อมต่อฐานข้อมูลได้', 'error'); btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-save"></i> บันทึก';
+            } 
+        }
 
-            // คำนวณ % ความคืบหน้าใหม่
-            const total = parseInt(document.getElementById('totalCount').innerText) || 0;
-            const greenCards = document.querySelectorAll('.border-green-400').length;
-            const newPercent = total > 0 ? (Math.floor((greenCards / total) * 100 * 100) / 100).toFixed(2) : "0.00";
+        // ฟังก์ชันสำหรับแอดมิน (บันทึกการตั้งค่าวันที่ + สวิตช์ฉุกเฉิน)
+        async function handleSaveAdminConfig() {
+            const toggle = document.getElementById('overrideToggle');
+            const startD = document.getElementById('sysStartDay').value;
+            const endD = document.getElementById('sysEndDay').value;
+            const state = toggle.checked;
             
-            document.getElementById('recordedCount').innerText = greenCards;
-            document.getElementById('progressPercent').innerText = newPercent + "%";
-            document.getElementById('progressBar').style.width = newPercent + "%";
-
-            btn.disabled = false;
+            toggle.disabled = true;
             
-            if (errorCount === 0) {
-                Swal.fire({
-                    title: 'สำเร็จ!',
-                    text: `บันทึกข้อมูลเรียบร้อยแล้ว (${successCount} รายการ)`,
-                    icon: 'success',
-                    timer: 2000,
-                    showConfirmButton: false
+            try {
+                const res = await fetch(GAS_WEB_APP_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: "saveSystemConfig", teacherName: globalTeacherName, override: state, startDay: startD, endDay: endD }),
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' }
                 });
-            } else {
-                Swal.fire('เสร็จสิ้น', `บันทึกสำเร็จ ${successCount} รายการ, ล้มเหลว ${errorCount} รายการ`, 'warning');
+                const result = await res.json();
+                
+                if (result.status === 'success') {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'บันทึกการตั้งค่าสำเร็จ',
+                        timer: 1500,
+                        showConfirmButton: false
+                    }).then(() => { fetchStudents(); });
+                } else {
+                    Swal.fire('ข้อผิดพลาด', result.message, 'error');
+                }
+            } catch(e) {
+                Swal.fire('Error', 'ไม่สามารถเชื่อมต่อได้', 'error');
+            } finally {
+                toggle.disabled = false;
             }
         }
 
@@ -409,89 +450,40 @@
         function openHistoryModal(sid, fullname) {
             document.getElementById('modalStudentName').innerText = fullname;
             historyContainer.innerHTML = '<div class="text-center py-8 text-gray-400"><i class="fa-solid fa-spinner fa-spin text-2xl"></i><br>กำลังดึงข้อมูล...</div>';
-            modal.classList.remove('hidden');
-            setTimeout(() => modal.classList.add('modal-open'), 10); 
-
-            fetch(GAS_WEB_APP_URL, {
-                method: 'POST', body: JSON.stringify({ action: "getStudentHistory", sid: sid }),
-                headers: { 'Content-Type': 'text/plain;charset=utf-8' }
-            })
+            modal.classList.remove('hidden'); setTimeout(() => modal.classList.add('modal-open'), 10); 
+            fetch(GAS_WEB_APP_URL, { method: 'POST', body: JSON.stringify({ action: "getStudentHistory", sid: sid }), headers: { 'Content-Type': 'text/plain;charset=utf-8' } })
             .then(res => res.json())
             .then(result => {
                 if (result.status === 'success') {
-                    if(result.data.length === 0) {
-                        historyContainer.innerHTML = '<div class="text-center py-10 text-gray-400 font-bold">ไม่พบประวัติการประเมิน</div>';
-                        return;
-                    }
+                    if(result.data.length === 0) { historyContainer.innerHTML = '<div class="text-center py-10 text-gray-400 font-bold">ไม่พบประวัติการบันทึกข้อมูล</div>'; return; }
                     let html = '';
                     result.data.forEach(rec => {
-                        let resColor = "text-gray-500";
-                        if(rec.result === "ดี") resColor = "text-green-600";
-                        else if(rec.result === "ปกติ") resColor = "text-blue-500";
-                        else if(rec.result === "ชั่ว") resColor = "text-red-500";
-
+                        let resColor = getThaiColorClass(rec.result);
                         html += `
                             <div class="bg-white p-3 rounded-xl shadow-sm border border-gray-200">
-                                <div class="flex justify-between items-center">
+                                <div class="flex justify-between items-center border-b pb-2 mb-2">
                                     <span class="font-bold text-blue-800 text-sm"><i class="fa-regular fa-calendar-check mr-1"></i> ${rec.month}</span>
                                     <span class="text-[10px] text-gray-400">ภาคเรียน ${rec.term}</span>
                                 </div>
-                                <div class="flex justify-between items-center text-xs mt-2 pt-2 border-t border-gray-50">
-                                    <span class="text-gray-500">ผลการประเมินคุณธรรม:</span>
-                                    <span class="font-bold ${resColor} bg-gray-50 px-2 py-1 rounded">${rec.result || '-'}</span>
+                                <div class="grid grid-cols-2 gap-2 text-center text-xs mb-2">
+                                    <div class="bg-blue-50 p-1.5 rounded"><span class="text-gray-500 block text-[9px]">น้ำหนัก</span><span class="font-bold text-gray-800">${rec.weight} กก.</span></div>
+                                    <div class="bg-blue-50 p-1.5 rounded"><span class="text-gray-500 block text-[9px]">ส่วนสูง</span><span class="font-bold text-gray-800">${rec.height} ซม.</span></div>
+                                </div>
+                                <div class="flex justify-between items-center text-xs px-1">
+                                    <span class="text-gray-500">BMI: <span class="font-bold text-gray-800">${rec.bmi}</span></span>
+                                    <span class="font-bold ${resColor}">${rec.result}</span>
                                 </div>
                             </div>
                         `;
                     });
                     historyContainer.innerHTML = html;
                 } else { historyContainer.innerHTML = `<div class="text-center text-red-500 py-4">${result.message}</div>`; }
-            }).catch(err => { historyContainer.innerHTML = '<div class="text-center text-red-500 py-4">เชื่อมต่อล้มเหลว</div>'; });
+            })
+            .catch(err => { historyContainer.innerHTML = '<div class="text-center text-red-500 py-4">เชื่อมต่อล้มเหลว</div>'; });
         }
 
-        function closeHistoryModal() {
-            modal.classList.remove('modal-open');
-            setTimeout(() => modal.classList.add('hidden'), 300);
-        }
-
-        function handleLogout() {
-            localStorage.removeItem("charAssessUser");
-            window.location.href = 'index.html';
-        }
-
-        async function handleToggleOverride() {
-            const toggle = document.getElementById('overrideToggle');
-            const state = toggle.checked;
-            toggle.disabled = true;
-            
-            try {
-                const res = await fetch(GAS_WEB_APP_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({ action: "toggleOverride", teacherName: globalTeacherName, state: state }),
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' }
-                });
-                const result = await res.json();
-                
-                if (result.status === 'success') {
-                    Swal.fire({
-                        icon: 'success',
-                        title: state ? 'เปิดระบบสำเร็จ' : 'ปิดระบบสำเร็จ',
-                        text: state ? 'ผู้ใช้ทุกคนสามารถประเมินได้ทันที' : 'ระบบกลับสู่โหมดเวลาปกติ',
-                        timer: 1500,
-                        showConfirmButton: false
-                    }).then(() => {
-                        fetchStudents();
-                    });
-                } else {
-                    Swal.fire('ข้อผิดพลาด', result.message, 'error');
-                    toggle.checked = !state;
-                }
-            } catch(e) {
-                Swal.fire('Error', 'ไม่สามารถเชื่อมต่อได้', 'error');
-                toggle.checked = !state;
-            } finally {
-                toggle.disabled = false;
-            }
-        }
+        function closeHistoryModal() { modal.classList.remove('modal-open'); setTimeout(() => modal.classList.add('hidden'), 300); }
+        function handleLogout() { localStorage.removeItem("weightRecordUser"); window.location.href = 'index.html'; }
     </script>
 </body>
 </html>
